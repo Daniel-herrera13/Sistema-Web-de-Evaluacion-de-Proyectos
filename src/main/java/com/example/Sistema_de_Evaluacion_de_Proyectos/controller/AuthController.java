@@ -34,17 +34,19 @@ public class AuthController {
         authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.email(), req.password()));
 
-        Usuario u = repo.findByEmail(req.email()).orElseThrow();
-        String token = jwtService.generarToken(u.getEmail(), u.getRol().name());
+        Usuario u = repo.findByCorreo(req.email()).orElseThrow();
+        String rol = u.getRol().getNombre().toUpperCase();
+        String token = jwtService.generarToken(u.getCorreo(), rol);
 
         return ResponseEntity.ok(new LoginResponse(
-                token, u.getId(), u.getNombre(), u.getEmail(), u.getRol().name()));
+                token, u.getId(), u.getNombre() + " " + u.getApellido(), u.getCorreo(), rol));
     }
 
     @GetMapping("/me")
     public ResponseEntity<LoginResponse> me(Authentication authentication) {
-        Usuario u = repo.findByEmail(authentication.getName()).orElseThrow();
+        Usuario u = repo.findByCorreo(authentication.getName()).orElseThrow();
         return ResponseEntity.ok(new LoginResponse(
-                null, u.getId(), u.getNombre(), u.getEmail(), u.getRol().name()));
+                null, u.getId(), u.getNombre() + " " + u.getApellido(), u.getCorreo(),
+                u.getRol().getNombre().toUpperCase()));
     }
 }
