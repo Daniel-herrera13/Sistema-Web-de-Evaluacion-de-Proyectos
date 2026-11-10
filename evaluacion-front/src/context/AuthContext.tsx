@@ -5,7 +5,7 @@ export interface Usuario {
     id: number
     nombre: string
     email: string
-    rol: 'ADMIN' | 'DOCENTE' | 'JURADO'
+    rol: 'ADMIN' | 'DOCENTE' | 'JURADO'|'ALUMNO'
 }
 
 interface AuthContextType {
