@@ -46,6 +46,8 @@ const menuPorRol: Record<Rol, MenuItem[]> = {
         { label: 'Empresas', icon: Building2 },
         { label: 'Proyectos', icon: FileText },
         { label: 'Criterios', icon: ClipboardCheck },
+        { label: 'Invitar evaluadores', icon: Users },
+        { label: 'Resultados', icon: BarChart3 },
         { label: 'Reportes', icon: BarChart3 },
     ],
     DOCENTE: [
@@ -55,6 +57,8 @@ const menuPorRol: Record<Rol, MenuItem[]> = {
         { label: 'Proyectos', icon: FileText },
         { label: 'Criterios', icon: ClipboardCheck },
         { label: 'Calificación', icon: CheckCircle2 },
+        { label: 'Invitar evaluadores', icon: Users },
+        { label: 'Resultados', icon: BarChart3 },
         { label: 'Reportes', icon: BarChart3 },
     ],
     JURADO: [
@@ -196,6 +200,14 @@ export default function Dashboard() {
                                             Criterios: 'criterios',
                                         }
                                         if (destinos[item.label]) navigate(`/gestion/${destinos[item.label]}`)
+                                        const evaluacion: Record<string, string> = {
+                                            'Proyectos asignados': 'pendientes',
+                                            Calificación: 'calificar',
+                                            Reportes: 'reportes',
+                                        }
+                                        if (evaluacion[item.label]) navigate(`/evaluacion/${evaluacion[item.label]}`)
+                                        if (item.label === 'Invitar evaluadores') navigate('/evaluacion/invitar')
+                                        if (item.label === 'Resultados') navigate('/evaluacion/resultados')
                                     }}
                                 >
                                     <Icon size={18} />

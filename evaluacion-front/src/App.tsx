@@ -4,6 +4,7 @@ import RutaPrivada from './components/RutaPrivada'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Gestion from './pages/Gestion'
+import Evaluaciones from './pages/Evaluaciones'
 
 export default function App() {
   return (
@@ -22,6 +23,10 @@ export default function App() {
             <Route
                 path="/gestion/:modulo"
                 element={<RutaPrivada><Gestion /></RutaPrivada>}
+            />
+            <Route
+                path="/evaluacion/:modo"
+                element={<RutaPrivada><Evaluaciones /></RutaPrivada>}
             />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
