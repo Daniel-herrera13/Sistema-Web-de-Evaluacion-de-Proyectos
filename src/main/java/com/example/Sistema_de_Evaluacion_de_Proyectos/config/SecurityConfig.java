@@ -20,7 +20,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
@@ -49,6 +48,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/materias/**", "/api/secciones/**").authenticated()
                         .requestMatchers("/api/materias/**", "/api/secciones/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers("/api/invitaciones/mias").hasAnyRole("DOCENTE", "JURADO")
+                        .requestMatchers("/api/invitaciones/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers("/api/evaluaciones/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")
+                        .requestMatchers("/api/reportes/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")
+                        .requestMatchers("/api/resultados/**").hasRole("ALUMNO")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

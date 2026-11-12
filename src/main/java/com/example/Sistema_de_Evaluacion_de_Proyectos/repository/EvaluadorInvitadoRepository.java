@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface EvaluadorInvitadoRepository extends JpaRepository<EvaluadorInvitado, Long> {
     List<EvaluadorInvitado> findByProyectoId(Long proyectoId);
+    List<EvaluadorInvitado> findByEvaluadorId(Long evaluadorId);
     Optional<EvaluadorInvitado> findByProyectoIdAndEvaluadorId(Long proyectoId, Long evaluadorId);
     boolean existsByProyectoIdAndEvaluadorId(Long proyectoId, Long evaluadorId);
 }

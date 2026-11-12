@@ -18,36 +18,30 @@ public class ProyectoController {
 
     @GetMapping
     public List<ProyectoDto.Response> listar(@RequestParam(required = false) Long grupoId,
-                                             @RequestParam(required = false) Long empresaId) {
-        return service.listar(grupoId, empresaId);
+                                             @RequestParam(required = false) Long empresaId,
+                                             Authentication auth) {
+        return service.listar(grupoId, empresaId, auth.getName());
     }
 
     @GetMapping("/{id}")
-    public ProyectoDto.Response obtener(@PathVariable Long id) { return service.obtener(id); }
+    public ProyectoDto.Response obtener(@PathVariable Long id, Authentication auth) {
+        return service.obtener(id, auth.getName());
+    }
 
-    @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public ProyectoDto.Response crear(@Valid @RequestBody ProyectoDto.Request r) { return service.crear(r); }
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProyectoDto.Response crear(@Valid @RequestBody ProyectoDto.Request r) {
+        return service.crear(r);
+    }
 
     @PutMapping("/{id}")
     public ProyectoDto.Response actualizar(@PathVariable Long id, @Valid @RequestBody ProyectoDto.Request r) {
         return service.actualizar(id, r);
     }
 
-    @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) { service.eliminar(id); }
-
-    @GetMapping("/{id}/evaluadores")
-    public List<ProyectoDto.Evaluador> evaluadores(@PathVariable Long id) { return service.evaluadores(id); }
-
-    @PostMapping("/{id}/evaluadores") @ResponseStatus(HttpStatus.CREATED)
-    public ProyectoDto.Evaluador invitar(@PathVariable Long id,
-                                         @Valid @RequestBody ProyectoDto.Invitar r,
-                                         Authentication auth) {
-        return service.invitar(id, r.evaluadorId(), auth.getName());
-    }
-
-    @DeleteMapping("/{id}/evaluadores/{evaluadorId}") @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void quitar(@PathVariable Long id, @PathVariable Long evaluadorId) {
-        service.quitarEvaluador(id, evaluadorId);
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminar(@PathVariable Long id) {
+        service.eliminar(id);
     }
 }

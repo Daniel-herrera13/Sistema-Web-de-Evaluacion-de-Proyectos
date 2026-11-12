@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
-
 public class ProyectoDto {
     public record Request(@NotBlank @Size(max = 200) String titulo,
                           @Size(max = 2000) String descripcion,
@@ -17,10 +15,6 @@ public class ProyectoDto {
 
     public record Response(Long id, String titulo, String descripcion,
                            Long grupoId, String grupoNombre, Long seccionId, Long materiaId,
-                           Long empresaId, String empresaNombre, String estado) {}
-
-    public record Invitar(@NotNull Long evaluadorId) {}
-
-    public record Evaluador(Long evaluadorId, String nombre, String apellido, String correo,
-                            String rol, LocalDateTime fechaInvitacion) {}
+                           Long empresaId, String empresaNombre, String estado,
+                           Boolean resultadosPublicados) {}
 }

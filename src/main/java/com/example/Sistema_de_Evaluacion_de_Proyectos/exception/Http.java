@@ -15,4 +15,7 @@ public final class Http {
     public static ResponseStatusException invalido(String m) {
         return new ResponseStatusException(HttpStatus.BAD_REQUEST, m);
     }
+    public static ResponseStatusException prohibido(String m) {
+        return new ResponseStatusException(HttpStatus.FORBIDDEN, m);
+    }
 }
