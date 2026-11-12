@@ -6,8 +6,8 @@ import jakarta.validation.constraints.Size;
 
 public class EmpresaDto {
     public record Request(@NotBlank @Size(max = 150) String nombre,
-                          @Size(max = 150) String contacto,
+                          @Size(max = 100) String contacto,
                           @Email @Size(max = 150) String correo,
-                          @Size(max = 30) String telefono) {}
+                          @Size(max = 20) String telefono) {}
     public record Response(Long id, String nombre, String contacto, String correo, String telefono) {}
 }
