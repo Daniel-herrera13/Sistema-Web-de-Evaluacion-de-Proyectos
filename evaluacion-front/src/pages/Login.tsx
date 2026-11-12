@@ -1,67 +1,80 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { isAxiosError } from 'axios'
-import { useAuth } from '../context/AuthContext'
+import {useState, type FormEvent} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {useAuth} from '../context/AuthContext';
+import './Login.css';
 
 export default function Login() {
-    const { login } = useAuth()
-    const navigate = useNavigate()
+    const {login} = useAuth();
+    const navigate = useNavigate();
 
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
-    const [cargando, setCargando] = useState(false)
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [cargando, setCargando] = useState(false);
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault()
-        setError('')
-        setCargando(true)
+    const enviar = async (e: FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setCargando(true);
         try {
-            await login(email, password)
-            navigate('/dashboard')
-        } catch (err) {
-            if (isAxiosError(err) && err.response?.data?.mensaje) {
-                setError(err.response.data.mensaje)
-            } else {
-                setError('No se pudo conectar con el servidor')
-            }
+            await login(email, password);
+            navigate('/dashboard');
+        } catch (err: any) {
+            setError(err?.response?.data?.mensaje ?? 'Correo o contraseña incorrectos');
         } finally {
-            setCargando(false)
+            setCargando(false);
         }
-    }
+    };
 
     return (
-        <div className="login-contenedor">
-            <form className="login-card" onSubmit={handleSubmit}>
-                <h1>Evaluación de Proyectos</h1>
-                <p className="subtitulo">Inicia sesión para continuar</p>
+        <div className="login">
+            <aside className="login-panel">
+                <div className="contenido">
+                    <h1>Sistema Web de Evaluación</h1>
+                    <p>Crea, responde y revisa evaluaciones desde cualquier navegador.</p>
+                </div>
+                <span className="marca">ITCA–FEPADE</span>
+            </aside>
 
-                {error && <div className="alerta-error">{error}</div>}
+            <main className="login-form-lado">
+                <form className="login-form" onSubmit={enviar} noValidate>
+                    <h2>Iniciar sesión</h2>
+                    <p className="sub">Ingresa con tu cuenta institucional</p>
 
-                <label htmlFor="email">Correo institucional</label>
-                <input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@itca.edu.sv"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
+                    <div className={`campo ${error ? 'con-error' : ''}`}>
+                        <label htmlFor="email">Correo institucional</label>
+                        <input
+                            id="email"
+                            type="email"
+                            autoComplete="username"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
 
-                <label htmlFor="password">Contraseña</label>
-                <input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
+                    <div className={`campo ${error ? 'con-error' : ''}`}>
+                        <label htmlFor="password">Contraseña</label>
+                        <input
+                            id="password"
+                            type="password"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                        {error && <p className="mensaje-error" role="alert">{error}</p>}
+                    </div>
 
-                <button type="submit" disabled={cargando}>
-                    {cargando ? 'Ingresando...' : 'Ingresar'}
-                </button>
-            </form>
+                    <a href="#" className="olvido" onClick={(e) => e.preventDefault()}>
+                        ¿Olvidaste tu contraseña?
+                    </a>
+
+                    <button type="submit" className="btn-ingresar" disabled={cargando || !email || !password}>
+                        {cargando ? 'Ingresando...' : 'Ingresar'}
+                    </button>
+                </form>
+            </main>
         </div>
-    )
+    );
 }

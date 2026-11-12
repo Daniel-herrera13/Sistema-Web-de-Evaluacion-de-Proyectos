@@ -1,0 +1,182 @@
+.login {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+}
+
+/* ---------- Panel rojo ---------- */
+.login-panel {
+    background: var(--rojo);
+    color: var(--blanco);
+    padding: 48px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.login-panel .contenido {
+    margin: auto 0;
+}
+
+.login-panel h1 {
+    font-size: clamp(36px, 4.4vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 20px;
+    max-width: 11ch;
+}
+
+.login-panel p {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.5;
+    margin: 0;
+    max-width: 28ch;
+    opacity: 0.92;
+}
+
+.login-panel .marca {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* ---------- Formulario ---------- */
+.login-form-lado {
+    background: var(--crema);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 420px;
+}
+
+.login-form h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+}
+
+.login-form .sub {
+    font-size: 13.5px;
+    color: var(--gris);
+    margin: 0 0 28px;
+}
+
+.campo {
+    margin-bottom: 18px;
+}
+
+.campo label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.campo input {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    font-size: 15px;
+    color: var(--tinta);
+    background: var(--blanco);
+    border: 1.5px solid var(--borde);
+    border-radius: var(--radio-boton);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.campo input::placeholder {
+    color: var(--gris);
+    opacity: 0.7;
+}
+
+/* foco dorado, como en la guía */
+.campo input:focus {
+    border-color: var(--dorado);
+    box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.3);
+}
+
+/* error: fondo rosado y borde rojo */
+.campo.con-error input {
+    background: #FCE4E0;
+    border-color: var(--error);
+}
+
+.mensaje-error {
+    font-size: 13px;
+    color: var(--error);
+    margin: 8px 0 0;
+}
+
+.olvido {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--rojo);
+    text-decoration: underline;
+    margin-bottom: 32px;
+}
+
+.btn-ingresar {
+    width: 100%;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--blanco);
+    background: var(--rojo);
+    border: none;
+    border-radius: var(--radio-boton);
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.btn-ingresar:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.btn-ingresar:focus-visible {
+    outline: 3px solid var(--dorado);
+    outline-offset: 2px;
+}
+
+.btn-ingresar:disabled {
+    background: #DE9C90;
+    cursor: not-allowed;
+}
+
+/* ---------- Móvil ---------- */
+@media (max-width: 820px) {
+    .login {
+        grid-template-columns: 1fr;
+    }
+
+    .login-panel {
+        padding: 32px 28px;
+        gap: 24px;
+    }
+
+    .login-panel .contenido {
+        margin: 0;
+    }
+
+    .login-panel h1 {
+        font-size: 34px;
+        max-width: none;
+    }
+
+    .login-panel p {
+        font-size: 15px;
+    }
+
+    .login-form-lado {
+        padding: 32px 24px 48px;
+        align-items: flex-start;
+    }
+}

@@ -1,63 +1,35 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --rojo: #B5260A;
+    --dorado: #F5B800;
+    --crema: #F7F3EE;
+    --blanco: #FFFFFF;
+    --tinta: #241B17;
+    --gris: #7A6F68;
+    --borde: #E8E1D9;
+    --exito: #2E7D32;
+    --alerta: #8A6D00;
+    --error: #B3261E;
+
+    --radio-boton: 10px;
+    --radio-tarjeta: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body, #root {
+    height: 100%;
+}
 
 body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #f3f4f6;
-  color: #1f2937;
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 15px;
+    color: var(--tinta);
+    background: var(--crema);
 }
 
-.login-contenedor {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
+button, input {
+    font-family: inherit;
 }
-
-.login-card {
-  width: 100%;
-  max-width: 380px;
-  background: #fff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.login-card h1 { font-size: 1.4rem; color: #b91c1c; }
-.subtitulo { color: #6b7280; margin-bottom: 0.75rem; font-size: 0.9rem; }
-
-.login-card label { font-size: 0.85rem; font-weight: 600; margin-top: 0.5rem; }
-
-.login-card input {
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-.login-card input:focus { outline: 2px solid #b91c1c; border-color: transparent; }
-
-.login-card button, .dashboard button {
-  margin-top: 1rem;
-  padding: 0.7rem;
-  background: #b91c1c;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-}
-.login-card button:hover, .dashboard button:hover { background: #991b1b; }
-.login-card button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.alerta-error {
-  background: #fee2e2;
-  color: #991b1b;
-  padding: 0.6rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.dashboard { max-width: 600px; margin: 3rem auto; padding: 0 1rem; line-height: 1.8; }
