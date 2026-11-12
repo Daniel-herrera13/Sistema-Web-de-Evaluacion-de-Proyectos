@@ -20,10 +20,9 @@ public class DataInitializer implements CommandLineRunner {
     private final UsuarioRepository usuarios;
     private final PasswordEncoder encoder;
 
-    @Override
     @Transactional
     public void run(String... args) {
-        for (String n : List.of("alumno", "jurado", "docente", "admin")) {
+        for (String n : new String[]{"alumno", "jurado", "docente", "admin"}) {
             if (roles.findByNombre(n).isEmpty()) {
                 Rol r = new Rol();
                 r.setNombre(n);
