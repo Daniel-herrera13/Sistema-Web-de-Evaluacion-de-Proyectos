@@ -10,7 +10,7 @@ export interface Usuario {
 
 interface AuthContextType {
     usuario: Usuario | null
-    login: (email: string, password: string) => Promise<void>
+    login: (email: string, password: string) => Promise<Usuario>
     logout: () => void
 }
 
@@ -22,12 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return guardado ? JSON.parse(guardado) : null
     })
 
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string): Promise<Usuario> => {
         const { data } = await api.post('/auth/login', { email, password })
         const { token, ...datosUsuario } = data
         localStorage.setItem('token', token)
         localStorage.setItem('usuario', JSON.stringify(datosUsuario))
         setUsuario(datosUsuario)
+        return datosUsuario
     }
 
     const logout = () => {
