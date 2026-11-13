@@ -4,6 +4,7 @@ import axios from 'axios'
 import { BookOpen, Building2, ClipboardCheck, Edit3, FileText, GraduationCap, Layers, Plus, Save, Trash2, Users, X } from 'lucide-react'
 import api from '../api/axios'
 import Shell from '../components/Shell'
+import AlumnosDisponibles from '../components/AlumnosDisponibles'
 import { useAuth, type Rol } from '../context/AuthContext'
 import type { Icono } from '../config/menu'
 import { mensajeError } from '../utils/errores'
@@ -35,7 +36,7 @@ const emptyForms: Record<Module, Row> = {
     usuarios: { nombre: '', apellido: '', correo: '', password: '', rolId: '', activo: true },
     materias: { nombre: '', descripcion: '', docentePrincipalId: '' },
     secciones: { nombre: '', ciclo: '', materiaId: '' },
-    grupos: { nombre: '', seccionId: '' },
+    grupos: { nombre: '', asignacionId: '' },
     empresas: { nombre: '', contacto: '', correo: '', telefono: '' },
     proyectos: { titulo: '', descripcion: '', grupoId: '', empresaId: '', estado: 'ACTIVO' },
     criterios: { nombre: '', descripcion: '', ponderacion: '', nivel: '', nivelId: '' },
@@ -43,7 +44,7 @@ const emptyForms: Record<Module, Row> = {
 
 const etiquetaNivel: Record<string, string> = { MATERIA: 'Materia', SECCION: 'Sección', GRUPO: 'Grupo', PROYECTO: 'Proyecto' }
 const claveNivel: Record<string, string> = { MATERIA: 'materiaId', SECCION: 'seccionId', GRUPO: 'grupoId', PROYECTO: 'proyectoId' }
-const idsNumericos = ['docentePrincipalId', 'seccionId', 'grupoId', 'empresaId', 'materiaId', 'proyectoId', 'rolId', 'ponderacion']
+const idsNumericos = ['docentePrincipalId', 'asignacionId', 'seccionId', 'grupoId', 'empresaId', 'materiaId', 'proyectoId', 'rolId', 'ponderacion']
 
 const listData = (data: any): Row[] => (Array.isArray(data) ? data : data?.content ?? [])
 const get = async (url: string): Promise<Row[]> => listData((await api.get(url)).data)
@@ -76,7 +77,6 @@ function Modulo({ active }: { active: Module }) {
     const [error, setError] = useState('')
     const [grupoSel, setGrupoSel] = useState<Row | null>(null)
     const [members, setMembers] = useState<Row[]>([])
-    const [available, setAvailable] = useState<Row[]>([])
     const [detail, setDetail] = useState<Row | null>(null)
 
     const load = async () => {
@@ -88,7 +88,7 @@ function Modulo({ active }: { active: Module }) {
         if (active === 'usuarios') pedidos.roles = () => get('/roles')
         if (active === 'materias') pedidos.docentes = cargarDocentes
         if (active === 'secciones') pedidos.materias = () => get('/materias')
-        if (active === 'grupos') pedidos.secciones = () => get('/secciones')
+        if (active === 'grupos') pedidos.asignaciones = () => get('/asignaciones')
         if (active === 'proyectos') { pedidos.grupos = () => get('/grupos'); pedidos.empresas = () => get('/empresas') }
         if (active === 'criterios') {
             pedidos.materias = () => get('/materias'); pedidos.secciones = () => get('/secciones')
@@ -116,6 +116,8 @@ function Modulo({ active }: { active: Module }) {
     const opciones = (arr: Row[] | undefined, etiqueta: (x: Row) => string): [string, string][] =>
         (arr ?? []).map((x) => [String(x.id), etiqueta(x)])
     const etiquetaSeccion = (x: Row) => `${x.nombre} · ${x.ciclo}${x.materiaNombre ? ` · ${x.materiaNombre}` : ''}`
+    const etiquetaAsignacion = (x: Row) =>
+        `${x.materiaNombre ?? x.materia ?? 'Materia'} · ${x.seccionNombre ?? x.seccion ?? 'Sección'}${x.ciclo ? ` · ${x.ciclo}` : ''}${x.subseccionLetra ? ` · ${x.subseccionLetra}` : ''} · ${x.docenteNombre ?? x.docente ?? 'Docente'}`
     const nivelOpciones: Record<string, [string, string][]> = {
         MATERIA: opciones(lookups.materias, (x) => x.nombre),
         SECCION: opciones(lookups.secciones, etiquetaSeccion),
@@ -143,7 +145,7 @@ function Modulo({ active }: { active: Module }) {
         ],
         grupos: [
             { key: 'nombre', label: 'Nombre', required: true },
-            { key: 'seccionId', label: 'Sección', required: true, options: opciones(lookups.secciones, etiquetaSeccion) },
+            { key: 'asignacionId', label: 'Asignación', required: true, options: opciones(lookups.asignaciones, etiquetaAsignacion) },
         ],
         empresas: [
             { key: 'nombre', label: 'Nombre', required: true },
@@ -175,6 +177,10 @@ function Modulo({ active }: { active: Module }) {
     const submit = async (event: FormEvent) => {
         event.preventDefault()
         setError(''); setNotice('')
+        if (active === 'grupos' && (!String(form.nombre ?? '').trim() || !form.asignacionId)) {
+            setError('El nombre y la asignación son obligatorios.')
+            return
+        }
         const payload: Row = {}
         for (const [k, v] of Object.entries(form)) if (v !== '' && v !== null && v !== undefined) payload[k] = v
         for (const k of idsNumericos) if (payload[k] !== undefined) payload[k] = Number(payload[k])
@@ -201,6 +207,7 @@ function Modulo({ active }: { active: Module }) {
             base.activo = row.activo ?? true
             base.password = ''
         }
+        if (active === 'grupos') base.asignacionId = String(row.asignacionId ?? '')
         if (active === 'criterios') { base.nivel = row.nivel ?? ''; base.nivelId = String(row.nivelId ?? '') }
         setEditing(row.id); setForm(base)
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -216,19 +223,11 @@ function Modulo({ active }: { active: Module }) {
     // ---------- integrantes de un grupo ----------
     const cargarIntegrantes = async (g: Row) => {
         try {
-            const [m, d] = await Promise.all([
-                api.get(`/grupos/${g.id}/alumnos`),
-                api.get('/alumnos', { params: { seccionId: g.seccionId, sinGrupo: true } }),
-            ])
-            setMembers(listData(m.data)); setAvailable(listData(d.data))
+            const m = await api.get(`/grupos/${g.id}/alumnos`)
+            setMembers(listData(m.data))
         } catch (e) { setError(mensajeError(e, 'No fue posible cargar los integrantes.')) }
     }
     const abrirGrupo = (g: Row) => { setGrupoSel(g); void cargarIntegrantes(g) }
-    const addMember = async (alumnoId: number) => {
-        if (!grupoSel) return
-        try { await api.post(`/grupos/${grupoSel.id}/alumnos`, { alumnoId }); await cargarIntegrantes(grupoSel); await load() }
-        catch (e) { setError(mensajeError(e, 'No se pudo asignar el alumno.')) }
-    }
     const removeMember = async (alumnoId: number) => {
         if (!grupoSel) return
         try { await api.delete(`/grupos/${grupoSel.id}/alumnos/${alumnoId}`); await cargarIntegrantes(grupoSel); await load() }
@@ -263,7 +262,7 @@ function Modulo({ active }: { active: Module }) {
         ],
         grupos: [
             { th: 'Grupo', td: (r) => r.nombre },
-            { th: 'Sección', td: (r) => r.seccionNombre },
+            { th: 'Asignación', td: (r) => r.asignacionNombre || `#${r.asignacionId}` },
             { th: 'Alumnos', td: (r) => r.totalAlumnos },
         ],
         empresas: [
@@ -321,6 +320,9 @@ function Modulo({ active }: { active: Module }) {
                             </label>
                         ))}
                         {active === 'criterios' && <p className="nota-info">Se usa el nivel más específico cuya suma sea 100 %: proyecto → grupo → sección → materia.</p>}
+                        {active === 'grupos' && (lookups.asignaciones ?? []).length === 0 && (
+                            <p className="nota-info">No hay asignaciones disponibles. Primero debe crearse una asignación.</p>
+                        )}
                         <div className="form-actions">
                             <button className="primary-button" type="submit"><Save size={16} /> {editing ? 'Actualizar' : 'Guardar'}</button>
                             {editing && <button className="secondary-button" type="button" onClick={() => { setEditing(null); setForm(emptyForms[active]) }}><X size={16} /> Cancelar</button>}
@@ -377,11 +379,7 @@ function Modulo({ active }: { active: Module }) {
                             {members.length === 0 && <p className="nota-info">Aún no hay alumnos en este grupo.</p>}
                             {members.map((m) => <div className="member-row" key={m.id}>{m.nombre} {m.apellido}<button onClick={() => void removeMember(m.id)}><X size={15} /></button></div>)}
                         </div>
-                        <div>
-                            <h3>Disponibles en esta sección</h3>
-                            {available.length === 0 && <p className="nota-info">No quedan alumnos sin grupo en esta sección.</p>}
-                            {available.map((m) => <button className="available-row" key={m.id} onClick={() => void addMember(m.id)}>{m.nombre} {m.apellido}<Plus size={15} /></button>)}
-                        </div>
+                        <AlumnosDisponibles grupoId={grupoSel.id} onAgregado={() => void cargarIntegrantes(grupoSel)} />
                     </div>
                 </section>
             )}

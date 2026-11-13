@@ -14,6 +14,7 @@ import MiNota from './pages/MiNota'
 import MiProyecto from './pages/MiProyecto'
 import MisCriterios from './pages/MisCriterios'
 import Reportes from './pages/Reportes'
+import Matriculas from './pages/Matriculas'
 
 export default function App() {
     return (
@@ -30,6 +31,7 @@ export default function App() {
                     <Route path="/modalidades" element={<RutaPrivada roles={['ADMIN', 'DOCENTE']}><Esquema /></RutaPrivada>} />
                     <Route path="/evaluacion-publica" element={<RutaPrivada roles={['ADMIN', 'DOCENTE']}><EvaluacionPublica /></RutaPrivada>} />
                     <Route path="/notas" element={<RutaPrivada roles={['ADMIN', 'DOCENTE']}><NotasFinales /></RutaPrivada>} />
+                    <Route path="/matriculas" element={<RutaPrivada roles={['ADMIN', 'DOCENTE']}><Matriculas /></RutaPrivada>} />
 
                     {/* Evaluadores (cada modo valida su propio rol) */}
                     <Route path="/evaluacion/:modo" element={<RutaPrivada roles={['ADMIN', 'DOCENTE', 'JURADO']}><Evaluaciones /></RutaPrivada>} />

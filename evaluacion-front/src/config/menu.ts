@@ -20,6 +20,7 @@ const gestion = (conUsuarios: boolean): GrupoMenu => ({
         ...(conUsuarios ? [{ to: '/gestion/usuarios', label: 'Usuarios', icon: Users }] : []),
         { to: '/gestion/materias', label: 'Materias', icon: BookOpen },
         { to: '/gestion/secciones', label: 'Secciones', icon: Layers },
+        { to: '/matriculas', label: 'Matrículas', icon: UserPlus },
         { to: '/gestion/grupos', label: 'Alumnos y grupos', icon: GraduationCap },
         { to: '/gestion/empresas', label: 'Empresas', icon: Building2 },
         { to: '/gestion/proyectos', label: 'Proyectos', icon: FileText },
