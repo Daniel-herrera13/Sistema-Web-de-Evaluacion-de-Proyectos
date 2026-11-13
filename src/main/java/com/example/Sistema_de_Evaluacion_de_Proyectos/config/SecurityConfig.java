@@ -44,10 +44,20 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/error").permitAll()
+                        .requestMatchers("/api/publico/**").permitAll()
+                        .requestMatchers("/api/esquemas/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers("/api/autoevaluacion/**").hasRole("ALUMNO")
+                        .requestMatchers("/api/notas/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers("/api/auth/login", "/api/auth/recuperar", "/api/auth/restablecer", "/error").permitAll()                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/materias/**", "/api/secciones/**").authenticated()
-                        .requestMatchers("/api/materias/**", "/api/secciones/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers(HttpMethod.GET, "/api/materias/**", "/api/secciones/**", "/api/grupos/**",
+                                "/api/empresas/**", "/api/criterios/**", "/api/roles/**").authenticated()
+                        .requestMatchers("/api/alumnos/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers("/api/materias/**", "/api/secciones/**", "/api/grupos/**",
+                                "/api/empresas/**", "/api/criterios/**").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers(HttpMethod.POST, "/api/proyectos").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers(HttpMethod.PUT, "/api/proyectos/*").hasAnyRole("ADMIN", "DOCENTE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/proyectos/*").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/invitaciones/mias").hasAnyRole("DOCENTE", "JURADO")
                         .requestMatchers("/api/invitaciones/**").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/evaluaciones/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")

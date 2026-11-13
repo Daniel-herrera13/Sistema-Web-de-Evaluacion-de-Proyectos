@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface GrupoRepository extends JpaRepository<Grupo, Long> {
-    List<Grupo> findBySeccionId(Long seccionId);
-    boolean existsBySeccionIdAndNombreIgnoreCase(Long seccionId, String nombre);
-    boolean existsBySeccionIdAndNombreIgnoreCaseAndIdNot(Long seccionId, String nombre, Long id);
+    List<Grupo> findByAsignacionId(Long asignacionId);
+    boolean existsByAsignacionIdAndNombreIgnoreCase(Long asignacionId, String nombre);
+    boolean existsByAsignacionIdAndNombreIgnoreCaseAndIdNot(Long asignacionId, String nombre, Long id);
 }

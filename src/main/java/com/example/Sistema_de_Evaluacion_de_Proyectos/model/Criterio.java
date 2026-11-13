@@ -31,8 +31,8 @@ public class Criterio {
     private Materia materia;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seccion_id")
-    private Seccion seccion;
+    @JoinColumn(name = "asignacion_id")
+    private Asignacion asignacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "grupo_id")

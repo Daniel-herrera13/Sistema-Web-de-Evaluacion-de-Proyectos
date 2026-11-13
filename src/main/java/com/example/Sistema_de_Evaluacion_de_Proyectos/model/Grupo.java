@@ -5,7 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "grupos",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"seccion_id", "nombre"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"asignacion_id", "nombre"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,6 +20,6 @@ public class Grupo {
     private String nombre;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seccion_id", nullable = false)
-    private Seccion seccion;
+    @JoinColumn(name = "asignacion_id", nullable = false)
+    private Asignacion asignacion;
 }

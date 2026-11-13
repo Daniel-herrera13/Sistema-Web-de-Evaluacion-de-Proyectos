@@ -29,7 +29,8 @@ public class AlumnoController {
         List<Usuario> lista = usuarios.findByRolNombre("alumno");
         if (seccionId != null && Boolean.TRUE.equals(sinGrupo)) {
             Set<Long> ocupados = new HashSet<>();
-            miembros.findBySeccionId(seccionId).forEach(m -> ocupados.add(m.getAlumno().getId()));
+            miembros.findByAsignacionSubseccionSeccionId(seccionId)
+                    .forEach(m -> ocupados.add(m.getAlumno().getId()));
             lista = lista.stream().filter(a -> !ocupados.contains(a.getId())).toList();
         }
         return lista.stream()

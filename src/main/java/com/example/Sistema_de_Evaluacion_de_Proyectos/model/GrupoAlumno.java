@@ -8,7 +8,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "grupo_alumnos", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"grupo_id", "alumno_id"}),
-        @UniqueConstraint(columnNames = {"seccion_id", "alumno_id"})
+        @UniqueConstraint(columnNames = {"asignacion_id", "alumno_id"})
 })
 @Getter @Setter @NoArgsConstructor
 public class GrupoAlumno {
@@ -20,8 +20,8 @@ public class GrupoAlumno {
     private Grupo grupo;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seccion_id")
-    private Seccion seccion;
+    @JoinColumn(name = "asignacion_id")
+    private Asignacion asignacion;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "alumno_id")

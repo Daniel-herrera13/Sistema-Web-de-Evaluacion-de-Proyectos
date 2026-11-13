@@ -34,4 +34,11 @@ public class Proyecto {
 
     @Column(name = "resultados_publicados")
     private Boolean resultadosPublicados = false;
+
+    // Evaluación pública (ferias o defensas)
+    @Column(name = "codigo_publico", unique = true, length = 20)
+    private String codigoPublico;
+
+    @Column(name = "publico_abierto")
+    private Boolean publicoAbierto = false;
 }

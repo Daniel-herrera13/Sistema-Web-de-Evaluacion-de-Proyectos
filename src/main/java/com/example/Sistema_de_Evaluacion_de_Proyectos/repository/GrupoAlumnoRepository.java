@@ -8,10 +8,10 @@ import java.util.Optional;
 
 public interface GrupoAlumnoRepository extends JpaRepository<GrupoAlumno, Long> {
     List<GrupoAlumno> findByGrupoId(Long grupoId);
-    List<GrupoAlumno> findBySeccionId(Long seccionId);
+    List<GrupoAlumno> findByAsignacionSubseccionSeccionId(Long seccionId);
     List<GrupoAlumno> findByAlumnoId(Long alumnoId);
     long countByGrupoId(Long grupoId);
-    boolean existsBySeccionIdAndAlumnoId(Long seccionId, Long alumnoId);
+    boolean existsByAsignacionIdAndAlumnoId(Long asignacionId, Long alumnoId);
     boolean existsByGrupoIdAndAlumnoId(Long grupoId, Long alumnoId);
     Optional<GrupoAlumno> findByGrupoIdAndAlumnoId(Long grupoId, Long alumnoId);
 }

@@ -2,10 +2,10 @@ package com.example.Sistema_de_Evaluacion_de_Proyectos.service;
 
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ProyectoDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Http;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Asignacion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Empresa;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Grupo;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Proyecto;
-import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Seccion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Usuario;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.CriterioRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.EmpresaRepository;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -68,6 +69,11 @@ public class ProyectoService {
 
     private Proyecto aplicar(Proyecto p, ProyectoDto.Request r) {
         Grupo g = grupos.findById(r.grupoId()).orElseThrow(() -> Http.noEncontrado("Grupo no encontrado"));
+        // Un proyecto por grupo (y cada grupo es de una sola materia/asignación)
+        boolean otroProyecto = proyectos.findByGrupoId(g.getId()).stream()
+                .anyMatch(x -> !Objects.equals(x.getId(), p.getId()));
+        if (otroProyecto)
+            throw Http.conflicto("El grupo ya tiene un proyecto en esta materia");
         Empresa e = r.empresaId() == null ? null
                 : empresas.findById(r.empresaId()).orElseThrow(() -> Http.noEncontrado("Empresa no encontrada"));
         p.setTitulo(r.titulo().trim());
@@ -80,10 +86,11 @@ public class ProyectoService {
 
     private ProyectoDto.Response aDto(Proyecto p) {
         Grupo g = p.getGrupo();
-        Seccion s = g.getSeccion();
+        Asignacion a = g.getAsignacion();
         Empresa e = p.getEmpresa();
+        // Se mantiene la forma del DTO: seccionId = sección (SOFT41) y materiaId = materia de la asignación
         return new ProyectoDto.Response(p.getId(), p.getTitulo(), p.getDescripcion(),
-                g.getId(), g.getNombre(), s.getId(), s.getMateria().getId(),
+                g.getId(), g.getNombre(), a.getSubseccion().getSeccion().getId(), a.getMateria().getId(),
                 e == null ? null : e.getId(), e == null ? null : e.getNombre(),
                 p.getEstado(), p.getResultadosPublicados());
     }

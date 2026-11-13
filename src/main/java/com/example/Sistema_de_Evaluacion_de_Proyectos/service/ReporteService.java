@@ -3,6 +3,7 @@ package com.example.Sistema_de_Evaluacion_de_Proyectos.service;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ReporteDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ResultadoDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Http;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Asignacion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Grupo;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Proyecto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Seccion;
@@ -83,8 +84,9 @@ public class ReporteService {
     // ---------- auxiliares ----------
     private boolean coincide(Proyecto p, ReporteDto.Filtros f) {
         Grupo g = p.getGrupo();
-        Seccion s = g.getSeccion();
-        return (f.materiaId() == null || s.getMateria().getId().equals(f.materiaId()))
+        Asignacion a = g.getAsignacion();
+        Seccion s = a.getSubseccion().getSeccion();
+        return (f.materiaId() == null || a.getMateria().getId().equals(f.materiaId()))
                 && (f.seccionId() == null || s.getId().equals(f.seccionId()))
                 && (f.grupoId() == null || g.getId().equals(f.grupoId()))
                 && (f.empresaId() == null || (p.getEmpresa() != null && p.getEmpresa().getId().equals(f.empresaId())))

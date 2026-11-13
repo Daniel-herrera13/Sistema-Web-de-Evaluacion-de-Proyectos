@@ -10,5 +10,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     boolean existsByCorreoIgnoreCase(String correo);
     boolean existsByCorreoIgnoreCaseAndIdNot(String correo, Long id);
     List<Usuario> findByRolNombre(String nombre);
+    List<Usuario> findByRolNombreAndActivoTrue(String nombre);
+
 
 }

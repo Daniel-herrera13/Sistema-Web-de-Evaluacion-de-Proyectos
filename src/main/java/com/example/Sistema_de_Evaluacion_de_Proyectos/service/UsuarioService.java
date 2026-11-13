@@ -31,6 +31,13 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
+    public List<UsuarioDto.Respuesta> listarDocentes() {
+        return usuarios.findByRolNombreAndActivoTrue("DOCENTE").stream()
+                .map(UsuarioDto.Respuesta::de)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public UsuarioDto.Respuesta obtener(Long id) {
         return UsuarioDto.Respuesta.de(buscar(id));
     }

@@ -2,6 +2,7 @@ package com.example.Sistema_de_Evaluacion_de_Proyectos.service;
 
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ResultadoDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Http;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Asignacion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Criterio;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Evaluacion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.EvaluacionDetalle;
@@ -57,7 +58,9 @@ public class CalculoNotaService {
         Proyecto p = proyectos.findById(proyectoId)
                 .orElseThrow(() -> Http.noEncontrado("Proyecto no encontrado"));
         Grupo g = p.getGrupo();
-        Seccion s = g.getSeccion();
+        Asignacion a = g.getAsignacion();
+        Seccion s = a.getSubseccion().getSeccion();
+        String seccionNombre = s.getNombre() + a.getSubseccion().getLetra();   // p. ej. SOFT41A
 
         List<EvaluadorInvitado> inv = invitados.findByProyectoId(proyectoId);
         Map<Long, Evaluacion> porEvaluador = evaluaciones.findByProyectoId(proyectoId).stream()
@@ -97,8 +100,8 @@ public class CalculoNotaService {
 
         return new ResultadoDto.Resumen(
                 p.getId(), p.getTitulo(), g.getId(), g.getNombre(),
-                s.getId(), s.getNombre(), s.getCiclo(),
-                s.getMateria().getId(), s.getMateria().getNombre(),
+                s.getId(), seccionNombre, s.getCiclo(),
+                a.getMateria().getId(), a.getMateria().getNombre(),
                 p.getEmpresa() == null ? null : p.getEmpresa().getNombre(), p.getEstado(),
                 inv.size(), notasEnviadas.size(),
                 !inv.isEmpty() && notasEnviadas.size() == inv.size(),

@@ -7,7 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Usuario;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.UsuarioRepository;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.stream.Stream;
 import java.util.List;
 
 @RestController
@@ -15,7 +18,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InvitacionController {
     private final InvitacionService service;
+    private final UsuarioRepository usuarios;
+    public record Candidato(Long id, String nombre, String apellido, String correo, String rol) {}
 
+    @GetMapping("/candidatos")
+    @Transactional(readOnly = true)
+    public List<Candidato> candidatos() {
+        return Stream.concat(usuarios.findByRolNombre("jurado").stream(),
+                        usuarios.findByRolNombre("docente").stream())
+                .filter(Usuario::isActivo)
+                .map(u -> new Candidato(u.getId(), u.getNombre(), u.getApellido(), u.getCorreo(), u.getRol().getNombre()))
+                .toList();
+    }
     @GetMapping
     public List<InvitacionDto.Response> listar(@RequestParam Long proyectoId, Authentication auth) {
         return service.listar(proyectoId, auth.getName());

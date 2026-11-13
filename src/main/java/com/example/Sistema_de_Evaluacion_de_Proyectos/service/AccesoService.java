@@ -25,8 +25,9 @@ public class AccesoService {
         return u.getRol().getNombre().toLowerCase();
     }
 
+    /** Docente titular de la materia en la subsección del proyecto (Asignacion.docente). */
     public boolean esDocentePrincipal(Usuario u, Proyecto p) {
-        Usuario d = p.getGrupo().getSeccion().getMateria().getDocentePrincipal();
+        Usuario d = p.getGrupo().getAsignacion().getDocente();
         return d != null && d.getId().equals(u.getId());
     }
 

@@ -10,7 +10,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.ProyectoReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.NotaFinalDto;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +21,7 @@ public class ResultadoService {
     private final GrupoAlumnoRepository miembros;
     private final CalculoNotaService calculo;
     private final AccesoService acceso;
+    private final NotaFinalService notasFinales;
 
     /** Resultados de los proyectos del grupo del alumno. Sin publicar, no se muestra ninguna nota. */
     @Transactional(readOnly = true)
