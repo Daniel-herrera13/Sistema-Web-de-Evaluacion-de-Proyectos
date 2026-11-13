@@ -50,8 +50,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/notas/**").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/auth/login", "/api/auth/recuperar", "/api/auth/restablecer", "/error").permitAll()                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/materias/**", "/api/secciones/**", "/api/grupos/**",
+                        .requestMatchers(HttpMethod.GET, "/api/materias/**", "/api/secciones/**", "/api/asignaciones/**", "/api/grupos/**",
                                 "/api/empresas/**", "/api/criterios/**", "/api/roles/**").authenticated()
+                        .requestMatchers("/api/matriculas/**", "/api/subsecciones/**").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/alumnos/**").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/materias/**", "/api/secciones/**", "/api/grupos/**",
                                 "/api/empresas/**", "/api/criterios/**").hasAnyRole("ADMIN", "DOCENTE")

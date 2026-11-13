@@ -16,13 +16,14 @@ public class GrupoController {
     private final GrupoService service;
 
     @GetMapping
-    public List<GrupoDto.Response> listar(@RequestParam(required = false) Long seccionId) {
-        return service.listar(seccionId);
+    public List<GrupoDto.Response> listar(@RequestParam(required = false) Long asignacionId) {
+        return service.listar(asignacionId);
     }
 
     @GetMapping("/{id}")
     public GrupoDto.Response obtener(@PathVariable Long id) { return service.obtener(id); }
-
+    @GetMapping("/{id}/alumnos-disponibles")
+    public List<GrupoDto.Alumno> disponibles(@PathVariable Long id) { return service.disponibles(id); }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public GrupoDto.Response crear(@Valid @RequestBody GrupoDto.Request r) { return service.crear(r); }
 

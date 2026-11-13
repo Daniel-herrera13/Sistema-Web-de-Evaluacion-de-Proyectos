@@ -81,6 +81,17 @@ public class GrupoService {
                         m.getAlumno().getApellido(), m.getAlumno().getCorreo()))
                 .toList();
     }
+    /** Alumnos matriculados en la subsección de la asignación del grupo y sin grupo en esa asignación. */
+    @Transactional(readOnly = true)
+    public List<GrupoDto.Alumno> disponibles(Long grupoId) {
+        Asignacion asignacion = buscar(grupoId).getAsignacion();
+        return matriculas.findBySubseccionId(asignacion.getSubseccion().getId()).stream()
+                .map(Matricula::getAlumno)
+                .filter(Usuario::isActivo)
+                .filter(a -> !miembros.existsByAsignacionIdAndAlumnoId(asignacion.getId(), a.getId()))
+                .map(a -> new GrupoDto.Alumno(a.getId(), a.getNombre(), a.getApellido(), a.getCorreo()))
+                .toList();
+    }
 
     @Transactional
     public GrupoDto.Alumno agregarAlumno(Long grupoId, Long alumnoId) {
@@ -125,6 +136,7 @@ public class GrupoService {
         String nombreAsignacion = a.getSubseccion().getSeccion().getNombre() + a.getSubseccion().getLetra()
                 + " · " + a.getMateria().getNombre();
         return new GrupoDto.Response(g.getId(), g.getNombre(), a.getId(),
-                nombreAsignacion, miembros.countByGrupoId(g.getId()));
+                a.getSubseccion().getSeccion().getId(), nombreAsignacion,
+                miembros.countByGrupoId(g.getId()));
     }
 }
