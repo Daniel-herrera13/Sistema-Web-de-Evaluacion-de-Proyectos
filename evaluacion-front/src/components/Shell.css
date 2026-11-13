@@ -1,0 +1,28 @@
+/* Barra lateral fija mientras se desplaza el contenido */
+.app-shell > .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.nav-group { margin-bottom: 14px; }
+.nav-group .nav-heading { margin-top: 4px; }
+@media (max-width: 760px) {
+    .app-shell > .sidebar { position: fixed; }
+}
+
+/* Componentes comunes a varias pantallas */
+.person-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 13px; border: 1px solid var(--borde); border-radius: 10px; background: #fff; }
+.person-row > span { flex: 1; }
+.person-row small { display: block; margin-top: 4px; color: var(--gris); font-size: 10px; }
+.person-row button { border: 0; color: var(--rojo); background: transparent; cursor: pointer; }
+
+.result-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0; }
+.result-metrics strong { display: block; padding: 16px; border-radius: 10px; color: var(--rojo); background: #fff0e9; font-size: 25px; }
+.result-metrics small { display: block; margin-top: 4px; color: var(--gris); font-size: 10px; font-weight: 400; }
+@media (max-width: 760px) { .result-metrics { grid-template-columns: 1fr; } }
+
+.level-totals { display: grid; gap: 8px; margin-top: 18px; }
+.level-totals .criteria-total { margin-top: 0; }
+.criteria-total.pend { color: var(--alerta); background: #fff2c9; }
+
+td.wrap { white-space: normal; min-width: 220px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 18px; }
+.filtros .mod-field { max-width: 220px; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.stack-gap { display: grid; gap: 24px; }

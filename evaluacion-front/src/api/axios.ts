@@ -12,4 +12,18 @@ api.interceptors.request.use((config) => {
     return config
 })
 
+// Sesión vencida: limpia y manda al login (el login fallido no cuenta)
+api.interceptors.response.use(
+    (respuesta) => respuesta,
+    (error) => {
+        const url: string = error.config?.url ?? ''
+        if (error.response?.status === 401 && !url.includes('/auth/login')) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('usuario')
+            if (window.location.pathname !== '/login') window.location.assign('/login')
+        }
+        return Promise.reject(error)
+    },
+)
+
 export default api

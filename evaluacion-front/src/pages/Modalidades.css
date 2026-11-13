@@ -1,0 +1,106 @@
+/* Pantallas de evaluación por modalidades. Usa las variables de index.css (:root) */
+.panel.compacto { min-height: 0; }
+.mod-stack { display: grid; gap: 24px; }
+.mod-two { display: grid; grid-template-columns: minmax(260px, .7fr) minmax(0, 1.3fr); gap: 24px; align-items: start; }
+.mod-field { display: grid; gap: 6px; max-width: 420px; color: var(--gris); font-size: 11px; font-weight: 800; }
+.mod-input, .mod-select { width: 100%; padding: 11px 12px; border: 1px solid var(--borde); border-radius: 9px; color: var(--tinta); background: #fff; font: inherit; font-size: 13px; outline: none; }
+.mod-input:focus, .mod-select:focus { border-color: var(--dorado); box-shadow: 0 0 0 3px rgba(245, 184, 0, .3); }
+.chip-row, .preset-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-row { margin-bottom: 20px; }
+.preset-row { margin: 18px 0 6px; }
+.preset-btn { padding: 9px 13px; border: 1px solid var(--borde); border-radius: var(--radio-boton); color: var(--tinta); background: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.preset-btn:hover, .preset-btn.sel { border-color: var(--rojo); color: var(--rojo); }
+.primary-button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* porcentajes */
+.pct-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0; }
+.pct-card { padding: 16px; border: 1px solid var(--borde); border-radius: var(--radio-tarjeta); background: #fff; }
+.pct-card.activa { border-color: var(--rojo); background: #fff7f4; }
+.pct-card label { display: block; color: var(--gris); font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+.pct-input { display: flex; align-items: baseline; gap: 4px; margin: 8px 0 6px; }
+.pct-input input { width: 100%; min-width: 0; padding: 0; border: 0; color: var(--rojo); background: transparent; font: inherit; font-size: 30px; font-weight: 800; outline: none; }
+.pct-input span { color: var(--rojo); font-size: 18px; font-weight: 800; }
+.pct-card small { color: var(--gris); font-size: 11px; line-height: 1.4; }
+
+/* barra de suma */
+.sum-bar, .mod-progress { height: 10px; overflow: hidden; border-radius: 10px; background: var(--borde); }
+.sum-bar i, .mod-progress i { display: block; height: 100%; background: var(--dorado); transition: width .2s; }
+.sum-bar.ok i { background: var(--exito); }
+.sum-bar.over i { background: var(--error); }
+.sum-text { margin: 10px 0 0; font-size: 12px; color: var(--gris); }
+.sum-text.ok { color: var(--exito); }
+.sum-text.over { color: var(--error); }
+.aviso-suma { margin: 12px 0 0; padding: 11px 14px; border-left: 4px solid var(--dorado); border-radius: 8px; color: var(--alerta); background: #fff2c9; font-size: 12px; }
+.nota-info { margin: 14px 0; color: var(--gris); font-size: 12.5px; line-height: 1.5; }
+
+/* criterios */
+.crit-row { display: grid; grid-template-columns: 1.2fr 1.6fr 90px 38px; gap: 8px; align-items: center; margin-top: 12px; }
+.mini-btn { display: grid; place-items: center; height: 38px; border: 1px solid var(--borde); border-radius: 8px; color: var(--gris); background: #fff; cursor: pointer; }
+.mini-btn:hover { color: var(--error); border-color: var(--error); }
+.add-crit { margin: 16px 0 18px; }
+
+/* listas y notas */
+.target-list { display: grid; gap: 9px; margin-top: 18px; }
+.target-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--borde); border-radius: 10px; color: var(--tinta); background: #fff; font: inherit; text-align: left; cursor: pointer; }
+.target-item:hover, .target-item.chosen { border-color: var(--rojo); color: var(--rojo); }
+.target-item span { flex: 1; }
+.target-item strong, .target-item small { display: block; }
+.target-item small { margin-top: 3px; color: var(--gris); font-size: 10px; }
+.ok-icon { color: var(--exito); }
+.progress-line { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: 13px; }
+.progress-line strong { color: var(--alerta); }
+.anon-note { display: flex; align-items: center; gap: 7px; margin: 14px 0 0; color: var(--gris); font-size: 12px; }
+.note-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--borde); font-size: 13px; }
+.note-row small { display: block; margin-top: 4px; color: var(--gris); font-size: 10px; }
+.note-row input { width: 90px; padding: 10px; border: 1px solid var(--borde); border-radius: 8px; font: inherit; }
+.note-row input:focus { border-color: var(--dorado); box-shadow: 0 0 0 3px rgba(245, 184, 0, .3); outline: none; }
+
+/* estados */
+.tag { display: inline-block; padding: 5px 10px; border-radius: 14px; font-size: 11px; font-weight: 800; }
+.tag-ok { color: var(--exito); background: #e4f3e5; }
+.tag-warn { color: var(--alerta); background: #fff2c9; }
+
+/* código público */
+.code-box { display: grid; gap: 8px; justify-items: start; margin: 18px 0; padding: 18px; border: 1px dashed var(--rojo); border-radius: var(--radio-tarjeta); background: #fff7f4; }
+.code-box span { color: var(--gris); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.code-box strong { color: var(--rojo); font-size: 34px; letter-spacing: .18em; }
+.code-box code { max-width: 100%; overflow-wrap: anywhere; font-size: 12px; color: var(--tinta); }
+
+/* tarjeta de resultado */
+.nota-card { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.nota-card small { color: var(--gris); font-size: 12px; }
+.nota-grande { color: var(--rojo); font-size: 64px; line-height: 1; font-weight: 800; }
+.nota-grande.pendiente { color: var(--borde); }
+.desglose { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; width: 100%; margin-top: 14px; }
+.desglose div { padding: 12px; border-radius: 10px; background: #fff0e9; }
+.desglose span { display: block; color: var(--gris); font-size: 10px; }
+.desglose strong { font-size: 20px; color: var(--rojo); }
+
+/* página pública (celular) */
+.pub { min-height: 100vh; color: var(--tinta); background: var(--crema); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+.pub-head { padding: 26px 20px 40px; color: #fff; background: var(--rojo); }
+.pub-head > span { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; opacity: .9; }
+.pub-head h1 { margin: 12px 0 4px; font-size: 26px; line-height: 1.15; letter-spacing: -.02em; }
+.pub-head p { margin: 0; font-size: 13px; opacity: .9; }
+.pub-body { max-width: 560px; margin: -18px auto 0; padding: 0 16px 48px; }
+.pub-card { margin-bottom: 14px; padding: 18px; border: 1px solid var(--borde); border-radius: var(--radio-tarjeta); background: #fff; }
+.pub-card strong { display: block; font-size: 15px; }
+.pub-card small { display: block; margin-top: 4px; color: var(--gris); font-size: 12px; }
+.pub-ayuda { margin: 0; color: var(--gris); font-size: 13px; line-height: 1.5; }
+.pub-centro { display: grid; justify-items: center; gap: 8px; padding: 34px 20px; text-align: center; color: var(--gris); }
+.pub-centro.ok { color: var(--exito); }
+.pub-centro h2 { margin: 4px 0 0; color: var(--tinta); font-size: 20px; }
+.pub-centro p { margin: 0; font-size: 13px; }
+.rate-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 14px; }
+.rate-btn { height: 46px; border: 1.5px solid var(--borde); border-radius: var(--radio-boton); color: var(--tinta); background: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+.rate-btn.on { color: #fff; border-color: var(--rojo); background: var(--rojo); }
+.rate-btn:focus-visible { outline: 3px solid var(--dorado); outline-offset: 2px; }
+.pub-send { width: 100%; height: 52px; border: 0; border-radius: var(--radio-boton); color: #fff; background: var(--rojo); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.pub-send:disabled { background: #de9c90; cursor: not-allowed; }
+
+@media (max-width: 900px) { .mod-two { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+    .pct-grid { grid-template-columns: 1fr; }
+    .crit-row { grid-template-columns: 1fr 80px 38px; }
+    .crit-row input:nth-child(2) { grid-column: 1 / -1; order: 4; }
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 import {
     Eye,
     EyeOff,
@@ -34,11 +35,12 @@ import {
     TrendingUp
 } from 'lucide-react';
 
-type TipoCuenta = 'student' | 'teacher' | 'admin';
+type TipoCuenta = 'student' | 'teacher' | 'jury' | 'admin';
 
-const rolPorTipoCuenta: Record<TipoCuenta, 'ALUMNO' | 'DOCENTE' | 'ADMIN'> = {
+const rolPorTipoCuenta: Record<TipoCuenta, 'ALUMNO' | 'DOCENTE' | 'JURADO' | 'ADMIN'> = {
     student: 'ALUMNO',
     teacher: 'DOCENTE',
+    jury: 'JURADO',
     admin: 'ADMIN'
 };
 
@@ -47,7 +49,7 @@ export default function App() {
     const navigate = useNavigate();
     // Application State
     const [role, setRole] = useState<TipoCuenta>('student');
-    const [email, setEmail] = useState('estudiante@itca.edu.sv');
+    const [email, setEmail] = useState('alumno@itca.edu.sv');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
@@ -64,8 +66,12 @@ export default function App() {
     const [showForgotModal, setShowForgotModal] = useState(false);
     const [modalStep, setModalStep] = useState(1);
     const [resetEmail, setResetEmail] = useState('');
-    const [resetCode, setResetCode] = useState(['', '', '', '']);
+    const [resetCode, setResetCode] = useState(['', '', '', '', '', '']);
     const [isResetSuccess, setIsResetSuccess] = useState(false);
+    const [resetPassword, setResetPassword] = useState('');
+    const [resetPassword2, setResetPassword2] = useState('');
+    const [resetError, setResetError] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
 
     // Quick domain append
     const handleQuickDomain = () => {
@@ -123,8 +129,9 @@ export default function App() {
     // Role Handler
     const handleRoleSelect = (selectedRole: TipoCuenta) => {
         setRole(selectedRole);
-        if (selectedRole === 'student') setEmail('estudiante@itca.edu.sv');
+        if (selectedRole === 'student') setEmail('alumno@itca.edu.sv');
         else if (selectedRole === 'teacher') setEmail('docente@itca.edu.sv');
+        else if (selectedRole === 'jury') setEmail('jurado@itca.edu.sv');
         else setEmail('admin@itca.edu.sv');
     };
 
@@ -139,8 +146,8 @@ export default function App() {
             const usuario = await login(email, password);
             if (usuario.rol !== rolPorTipoCuenta[role]) {
                 logout();
-                const nombreRol = role === 'student' ? 'estudiante' : role === 'teacher' ? 'docente' : 'administrador';
-                setError(`Esta cuenta no corresponde al tipo ${nombreRol}. Selecciona el tipo de cuenta correcto.`);
+                const nombres: Record<TipoCuenta, string> = { student: 'alumno', teacher: 'docente', jury: 'jurado', admin: 'administrador' };
+                setError(`Esta cuenta no corresponde al tipo ${nombres[role]}. Selecciona el tipo de cuenta correcto.`);
                 return;
             }
             navigate('/dashboard');
@@ -154,40 +161,76 @@ export default function App() {
 
     // Code Input Handler
     const handleCodeChange = (index: number, value: string) => {
-        if (value.length > 1) return;
+        if (value.length > 1 || (value && !/^\d$/.test(value))) return;
         const newCode = [...resetCode];
         newCode[index] = value;
         setResetCode(newCode);
-
-        if (value && index < 3) {
-            const nextInput = document.getElementById(`code-input-desktop-${index + 1}`);
-            if (nextInput) nextInput.focus();
+        if (value && index < 5) {
+            document.getElementById(`code-input-desktop-${index + 1}`)?.focus();
         }
     };
 
-    const handleResetSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const cerrarRecuperacion = () => {
+        setShowForgotModal(false);
+        setModalStep(1);
+        setResetEmail('');
+        setResetCode(['', '', '', '', '', '']);
+        setResetPassword('');
+        setResetPassword2('');
+        setResetError('');
+        setIsResetSuccess(false);
+    };
+
+    const mensajeDe = (err: unknown, porDefecto: string) =>
+        (err as { response?: { data?: { mensaje?: string } } }).response?.data?.mensaje ?? porDefecto;
+
+    const handleResetSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setResetError('');
+
         if (modalStep === 1) {
             if (!resetEmail) return;
-            setModalStep(2);
-        } else {
+            setResetLoading(true);
+            try {
+                await api.post('/auth/recuperar', { email: resetEmail.trim() });
+                setModalStep(2);
+            } catch (err) {
+                setResetError(mensajeDe(err, 'No se pudo enviar el código. Intenta de nuevo.'));
+            } finally {
+                setResetLoading(false);
+            }
+            return;
+        }
+
+        const codigo = resetCode.join('');
+        if (codigo.length !== 6) { setResetError('Ingresa los 6 dígitos del código.'); return; }
+        if (resetPassword.length < 8) { setResetError('La contraseña debe tener al menos 8 caracteres.'); return; }
+        if (resetPassword !== resetPassword2) { setResetError('Las contraseñas no coinciden.'); return; }
+
+        setResetLoading(true);
+        try {
+            await api.post('/auth/restablecer', { email: resetEmail.trim(), codigo, password: resetPassword });
             setIsResetSuccess(true);
-            setTimeout(() => {
-                setShowForgotModal(false);
-                setModalStep(1);
-                setIsResetSuccess(false);
-                setResetEmail('');
-                setResetCode(['', '', '', '']);
-            }, 2000);
+            setTimeout(cerrarRecuperacion, 2500);
+        } catch (err) {
+            setResetError(mensajeDe(err, 'No se pudo restablecer la contraseña.'));
+        } finally {
+            setResetLoading(false);
         }
     };
+
+    const campo = `w-full px-4 py-3.5 rounded-2xl border text-sm outline-none transition-all ${
+        isDarkMode
+            ? 'bg-slate-800 border-slate-700 text-white focus:border-red-500'
+            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-red-600'
+    }`;
 
     const t = {
         title: lang === 'es' ? 'Sistema Web de Evaluación' : 'Evaluation Web System',
         subtitle: lang === 'es' ? 'Plataforma institucional para la gestión, ejecución y análisis de evaluaciones académicas en línea.' : 'Institutional platform for managing, conducting, and analyzing academic online assessments.',
         loginHeader: lang === 'es' ? 'Iniciar Sesión' : 'Sign In',
         loginDesc: lang === 'es' ? 'Accede con tu cuenta institucional de ITCA-FEPADE' : 'Access with your institutional ITCA-FEPADE account',
-        student: lang === 'es' ? 'Estudiante' : 'Student',
+        student: lang === 'es' ? 'Alumno' : 'Student',
         teacher: lang === 'es' ? 'Docente' : 'Faculty',
         admin: lang === 'es' ? 'Administrador' : 'Admin',
         emailLabel: lang === 'es' ? 'Correo Institucional' : 'Institutional Email',
@@ -195,7 +238,8 @@ export default function App() {
         rememberMe: lang === 'es' ? 'Recordar sesión' : 'Remember session',
         forgotPassword: lang === 'es' ? '¿Olvidaste tu contraseña?' : 'Forgot password?',
         submitBtn: lang === 'es' ? 'Ingresar al Portal' : 'Sign In to Portal',
-        systemStatus: lang === 'es' ? 'Sistema Operativo (100%)' : 'System Operational (100%)'
+        systemStatus: lang === 'es' ? 'Sistema Operativo (100%)' : 'System Operational (100%)',
+        jury: lang === 'es' ? 'Jurado' : 'Jury'
     };
 
     return (
@@ -307,7 +351,7 @@ export default function App() {
                             {/* Banner */}
                             <div className="p-8 rounded-3xl bg-gradient-to-r from-red-700 via-red-800 to-red-950 text-white shadow-2xl relative overflow-hidden flex justify-between items-center">
                                 <div className="relative z-10 space-y-2 max-w-xl">
-                                    <span className="px-3 py-1 rounded-full bg-white/10 text-xs font-semibold border border-white/20">Portal del Estudiante</span>
+                                    <span className="px-3 py-1 rounded-full bg-white/10 text-xs font-semibold border border-white/20">Portal del Alumno</span>
                                     <h2 className="text-3xl font-black">¡Bienvenido al Panel Académico!</h2>
                                     <p className="text-red-100/80 text-xs leading-relaxed">
                                         Tienes 2 evaluaciones pendientes para esta semana. Asegúrate de verificar los requerimientos técnicos de tu navegador antes de iniciar.
@@ -569,10 +613,11 @@ export default function App() {
                                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
                                     Selecciona tu tipo de cuenta
                                 </label>
-                                <div className={`grid grid-cols-3 gap-2 p-1.5 rounded-2xl border ${isDarkMode ? 'bg-slate-800/70 border-slate-700/60' : 'bg-slate-200/70 border-slate-300/60'}`}>
+                                <div className={`grid grid-cols-4 gap-2 p-1.5 rounded-2xl border ${isDarkMode ? 'bg-slate-800/70 border-slate-700/60' : 'bg-slate-200/70 border-slate-300/60'}`}>
                                     {([
                                         { id: 'student', label: t.student },
                                         { id: 'teacher', label: t.teacher },
+                                        { id: 'jury', label: t.jury },
                                         { id: 'admin', label: t.admin }
                                     ] as const).map((r) => (
                                         <button
@@ -740,7 +785,7 @@ export default function App() {
                     <div className={`w-full max-w-md p-8 rounded-3xl shadow-2xl relative border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-900'} animate-scale-up`}>
 
                         <button
-                            onClick={() => { setShowForgotModal(false); setModalStep(1); }}
+                            onClick={cerrarRecuperacion}
                             className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-full transition-colors cursor-pointer"
                         >
                             <X className="w-5 h-5" />
@@ -755,7 +800,7 @@ export default function App() {
                         </h3>
                         <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                             {modalStep === 1
-                                ? 'Ingresa tu correo institucional registrado. Te enviaremos un código de seguridad de 4 dígitos.'
+                                ? 'Ingresa tu correo institucional registrado. Te enviaremos un código de seguridad de 6 dígitos.'
                                 : `Ingresa el código enviado a ${resetEmail || 'tu correo registrado'}.`}
                         </p>
 
@@ -764,7 +809,7 @@ export default function App() {
                                 <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
                                 <div>
                                     <p className="font-bold">¡Contraseña restablecida!</p>
-                                    <p className="text-[11px] opacity-80">Revisa tu bandeja con tu nueva clave temporal de acceso.</p>
+                                    <p className="text-[11px] opacity-80">Ya puedes iniciar sesión con tu nueva contraseña.</p>
                                 </div>
                             </div>
                         ) : (
@@ -788,43 +833,53 @@ export default function App() {
                                         />
                                     </div>
                                 ) : (
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                                            Código de 4 dígitos
-                                        </label>
-                                        <div className="flex justify-between gap-3">
-                                            {resetCode.map((digit, idx) => (
-                                                <input
-                                                    key={idx}
-                                                    id={`code-input-desktop-${idx}`}
-                                                    type="text"
-                                                    maxLength={1}
-                                                    value={digit}
-                                                    onChange={(e) => handleCodeChange(idx, e.target.value)}
-                                                    className={`w-14 h-14 text-center text-xl font-bold rounded-2xl border outline-none ${
-                                                        isDarkMode
-                                                            ? 'bg-slate-800 border-slate-700 text-white focus:border-red-500'
-                                                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-red-600'
-                                                    }`}
-                                                />
-                                            ))}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                                                Código de 6 dígitos
+                                            </label>
+                                            <div className="flex justify-between gap-2">
+                                                {resetCode.map((digit, idx) => (
+                                                    <input
+                                                        key={idx}
+                                                        id={`code-input-desktop-${idx}`}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={1}
+                                                        value={digit}
+                                                        onChange={(e) => handleCodeChange(idx, e.target.value)}
+                                                        className={`w-12 h-12 text-center text-xl font-bold rounded-2xl border outline-none ${
+                                                            isDarkMode
+                                                                ? 'bg-slate-800 border-slate-700 text-white focus:border-red-500'
+                                                                : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-red-600'
+                                                        }`}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
+                                        <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)}
+                                            placeholder="Nueva contraseña (mínimo 8 caracteres)" className={campo} />
+                                        <input type="password" value={resetPassword2} onChange={(e) => setResetPassword2(e.target.value)}
+                                            placeholder="Repite la nueva contraseña" className={campo} />
                                     </div>
                                 )}
+
+                                {resetError && <p className="text-xs font-semibold text-red-600">{resetError}</p>}
 
                                 <div className="flex gap-3 pt-2">
                                     <button
                                         type="button"
-                                        onClick={() => setShowForgotModal(false)}
+                                        onClick={cerrarRecuperacion}
                                         className="w-1/2 py-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         type="submit"
+                                        disabled={resetLoading}
                                         className="w-1/2 py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition-all cursor-pointer"
                                     >
-                                        {modalStep === 1 ? 'Enviar Código' : 'Verificar & Restablecer'}
+                                        {resetLoading ? 'Procesando...' : modalStep === 1 ? 'Enviar Código' : 'Restablecer'}
                                     </button>
                                 </div>
                             </form>
