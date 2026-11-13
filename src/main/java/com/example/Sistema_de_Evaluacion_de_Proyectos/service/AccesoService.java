@@ -5,9 +5,13 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Proyecto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Usuario;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.EvaluadorInvitadoRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.GrupoAlumnoRepository;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.ProyectoRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +19,7 @@ public class AccesoService {
     private final UsuarioRepository usuarios;
     private final EvaluadorInvitadoRepository invitados;
     private final GrupoAlumnoRepository miembros;
+    private final ProyectoRepository proyectos;
 
     public Usuario actor(String correo) {
         return usuarios.findByCorreo(correo)
@@ -47,6 +52,14 @@ public class AccesoService {
 
     public void exigirAcceso(Usuario u, Proyecto p) {
         if (!puedeVer(u, p)) throw Http.prohibido("No tienes acceso a este proyecto");
+    }
+
+    public Collection<Long> proyectoIdsVisibles(Authentication auth) {
+        Usuario u = actor(auth.getName());
+        return proyectos.findAll().stream()
+                .filter(p -> puedeVer(u, p))
+                .map(Proyecto::getId)
+                .toList();
     }
 
     public boolean puedeGestionar(Usuario u, Proyecto p) {

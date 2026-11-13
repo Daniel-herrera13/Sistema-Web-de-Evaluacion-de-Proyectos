@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/invitaciones/mias").hasAnyRole("DOCENTE", "JURADO")
                         .requestMatchers("/api/invitaciones/**").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/evaluaciones/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")
+                        .requestMatchers("/api/reportes/estadisticas").hasAnyRole("ADMIN", "DOCENTE")
                         .requestMatchers("/api/reportes/**").hasAnyRole("ADMIN", "DOCENTE", "JURADO")
                         .requestMatchers("/api/resultados/**").hasRole("ALUMNO")
                         .anyRequest().authenticated())
