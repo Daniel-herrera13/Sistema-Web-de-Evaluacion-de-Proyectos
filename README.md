@@ -319,6 +319,19 @@ $bytes = New-Object byte[] 32
 [Convert]::ToBase64String($bytes)
 ```
 
+Para enviar los códigos de recuperación por el correo institucional, configura SMTP antes de iniciar el backend. Para cuentas de Outlook/Microsoft 365 usa `smtp.office365.com`, puerto `587` y STARTTLS:
+
+```powershell
+$env:MAIL_HOST = "smtp.office365.com"
+$env:MAIL_PORT = "587"
+$env:MAIL_USERNAME = "tu_correo@itca.edu.sv"
+$env:MAIL_PASSWORD = "tu contraseña o contraseña de aplicación"
+$env:MAIL_FROM = $env:MAIL_USERNAME
+.\mvnw.cmd spring-boot:run
+```
+
+`app.mail.enabled=true` ya está habilitado en `application.properties`. La cuenta institucional debe tener habilitado **SMTP AUTH**; si la institución usa autenticación multifactor, necesitarás una contraseña de aplicación si Microsoft 365 la permite. Las variables anteriores solo duran en esa ventana de PowerShell; configúralas nuevamente si abres otra.
+
 Ejecuta el backend:
 
 ```powershell
