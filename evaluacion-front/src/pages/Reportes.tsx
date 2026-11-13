@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
 import api from '../api/axios'
 import Shell from '../components/Shell'
+import EstadisticasReporte from '../components/estadisticas/EstadisticasReporte'
 import { descargar, limpiar, type Formato } from '../utils/descargas'
 import { mensajeError } from '../utils/errores'
+import type { FiltrosEstadisticas } from '../types/estadisticas'
 
 type Row = Record<string, any>
 const lista = (d: any): Row[] => (Array.isArray(d) ? d : d?.content ?? [])
@@ -33,6 +35,12 @@ export default function Reportes() {
     }, [filtros])
 
     const cambiar = (clave: keyof typeof filtros, valor: string) => setFiltros({ ...filtros, [clave]: valor })
+    const filtrosEstadisticas: FiltrosEstadisticas = {
+        materiaId: filtros.materiaId ? Number(filtros.materiaId) : undefined,
+        estado: filtros.estado || undefined,
+        ciclo: filtros.ciclo || undefined,
+        publicado: filtros.publicado === '' ? undefined : filtros.publicado === 'true',
+    }
 
     const abrir = async (id: number) => {
         setError('')
@@ -101,6 +109,8 @@ export default function Reportes() {
                     {!cargando && filas.length === 0 && <div className="empty-state"><strong>No hay proyectos con esos filtros</strong></div>}
                 </div>
             </section>
+
+            <EstadisticasReporte filtros={filtrosEstadisticas} />
 
             {detalle && (
                 <section className="panel compacto" style={{ marginTop: 24 }}>
