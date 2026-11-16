@@ -1,8 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { GraduationCap, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { useAuth, type Rol } from '../context/AuthContext'
 import { menuPorRol, nombreRol } from '../config/menu'
+import ThemeToggle from './ThemeToggle'
 import '../pages/Dashboard.css'
 import '../pages/Gestion.css'
 import '../pages/Modalidades.css'
@@ -16,12 +17,33 @@ interface Props {
     children: ReactNode
 }
 
+const CLAVE_COLAPSADA = 'sidebarColapsada'
+
+// Vive fuera del componente: sobrevive cuando el Shell se vuelve a montar al cambiar de pantalla
+let scrollSidebar = 0
+
+const leerColapsada = () => {
+    try { return localStorage.getItem(CLAVE_COLAPSADA) === '1' } catch { return false }
+}
+
 export default function Shell({ eyebrow, title, description, badge, children }: Props) {
     const { usuario, logout } = useAuth()
     const navigate = useNavigate()
     const { pathname } = useLocation()
     const [abierto, setAbierto] = useState(false)
-    const [colapsada, setColapsada] = useState(false)
+    const [colapsada, setColapsada] = useState(leerColapsada)
+    const sidebarRef = useRef<HTMLElement>(null)
+
+    // Restaura el scroll del sidebar antes de pintar, para que no se vea el salto
+    useLayoutEffect(() => {
+        if (sidebarRef.current) sidebarRef.current.scrollTop = scrollSidebar
+    }, [])
+
+    const alternarColapsada = () => {
+        const nueva = !colapsada
+        setColapsada(nueva)
+        try { localStorage.setItem(CLAVE_COLAPSADA, nueva ? '1' : '0') } catch { /* ignorar */ }
+    }
 
     const rol = (usuario?.rol ?? 'ALUMNO') as Rol
     const grupos = menuPorRol[rol]
@@ -39,7 +61,11 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
         <div className={`app-shell ${colapsada ? 'sidebar-collapsed' : ''}`}>
             <button className="mobile-menu" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={22} /></button>
 
-            <aside className={`sidebar ${abierto ? 'sidebar-open' : ''}`}>
+            <aside
+                ref={sidebarRef}
+                onScroll={(e) => { scrollSidebar = e.currentTarget.scrollTop }}
+                className={`sidebar ${abierto ? 'sidebar-open' : ''}`}
+            >
                 <div className="sidebar-top">
                     <div className="brand">
                         <div className="brand-mark"><GraduationCap size={24} /></div>
@@ -77,11 +103,14 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
 
             <main className="dashboard-main">
                 <header className="topbar">
-                    <button className="collapse-button" onClick={() => setColapsada(!colapsada)} aria-label="Contraer menú">
+                    <button className="collapse-button" onClick={alternarColapsada} aria-label="Contraer menú">
                         {colapsada ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
                     </button>
                     <div className="topbar-title">{title}</div>
-                    <div className="user-chip"><span className="avatar">{iniciales}</span><span>{nombreRol(rol)}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <ThemeToggle />
+                        <div className="user-chip"><span className="avatar">{iniciales}</span><span>{nombreRol(rol)}</span></div>
+                    </div>
                 </header>
                 <section className="dashboard-content">
                     <div className="page-heading">

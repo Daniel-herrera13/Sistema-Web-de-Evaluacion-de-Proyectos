@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { useTheme } from '../context/ThemeContext';
 import {
     Eye,
     EyeOff,
@@ -56,7 +57,8 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [error, setError] = useState('');
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const { theme, toggleTheme } = useTheme();
+    const isDarkMode = theme === 'dark';
     const [lang, setLang] = useState('es'); // 'es' | 'en'
 
     // Hero Carousel Index
@@ -258,7 +260,8 @@ export default function App() {
 
                 {/* Theme Toggle */}
                 <button
-                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    onClick={toggleTheme}
+                    aria-label={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
                     className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-800/80 backdrop-blur-xl border border-white/50 dark:border-slate-700/60 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                     {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}

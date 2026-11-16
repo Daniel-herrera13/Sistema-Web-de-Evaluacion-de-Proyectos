@@ -1,0 +1,164 @@
+/* Ajustes SOLO para modo oscuro. El modo claro no se modifica. */
+
+/* Variables locales del shell (Dashboard.css las define con valores fijos) */
+.dark .app-shell {
+    --dashboard-red: var(--rojo);
+    --dashboard-cream: var(--crema);
+    --dashboard-border: var(--borde);
+    --dashboard-text: var(--tinta);
+    --dashboard-muted: var(--gris);
+}
+
+/* Sidebar: rojo oscuro en lugar del rojo brillante */
+.dark .sidebar { background: #5C1606; }
+.dark .nav-item.active { color: #5C1606; background: #F2EBE4; }
+
+/* Superficies que tenían fondo blanco fijo */
+.dark .topbar,
+.dark .summary-card,
+.dark .panel,
+.dark .quick-actions button,
+.dark .gestion-field input,
+.dark .gestion-field select,
+.dark .row-actions button,
+.dark .icon-button,
+.dark .member-row,
+.dark .available-row,
+.dark .mod-input,
+.dark .mod-select,
+.dark .preset-btn,
+.dark .pct-card,
+.dark .mini-btn,
+.dark .target-item,
+.dark .person-row,
+.dark .pub-card,
+.dark .rate-btn,
+.dark .note-row input {
+    background: var(--blanco);
+}
+.dark .note-row input { color: var(--tinta); }
+
+/* Fondos rojizos suaves */
+.dark .summary-icon,
+.dark .result-metrics strong,
+.dark .desglose div {
+    background: rgba(217, 68, 42, .18);
+}
+.dark .pct-card.activa,
+.dark .code-box {
+    background: rgba(217, 68, 42, .12);
+}
+
+/* Avisos amarillos */
+.dark .dashboard-alert,
+.dark .aviso-suma,
+.dark .tag-warn,
+.dark .status-tag,
+.dark .criteria-total.pend {
+    color: #E0B84A;
+    background: rgba(245, 184, 0, .14);
+}
+.dark .dashboard-alert { border-left-color: #E0B84A; }
+.dark .progress-block strong { color: #E0B84A; }
+
+/* Verdes (éxito) */
+.dark .dashboard-success,
+.dark .criteria-total,
+.dark .security-badge,
+.dark .tag-ok {
+    color: #81C784;
+    background: rgba(102, 187, 106, .16);
+}
+.dark .empty-state svg,
+.dark .available-row svg { color: var(--exito); }
+
+/* Rojo (error) */
+.dark .criteria-total.over {
+    color: #F2958F;
+    background: rgba(242, 118, 110, .16);
+}
+
+/* Bordes, barras y foco */
+.dark td { border-bottom-color: var(--borde); }
+.dark .progress-track { background: var(--borde); }
+.dark .gestion-field input:focus,
+.dark .gestion-field select:focus {
+    box-shadow: 0 0 0 3px rgba(217, 68, 42, .3);
+}
+
+/* Página pública */
+.dark .pub-head { background: #7A1A07; }
+.dark .pub-send:disabled {
+    background: rgba(217, 68, 42, .35);
+    color: rgba(255, 255, 255, .6);
+}
+/* ================= Estadísticas (EstadisticasReporte) ================= */
+.dark .est {
+    --est-rojo: #D9442A;
+    --est-dorado: #F5B800;
+    --est-crema: #1A1411;
+    --est-tinta: #F2EBE4;
+    --est-gris: #A89D95;
+    --est-borde: #3A302B;
+    --est-exito: #66BB6A;
+    --est-error: #F2766E;
+}
+
+.dark .est-tarjeta,
+.dark .est-tooltip,
+.dark .est-aviso--error {
+    background: var(--blanco);
+}
+.dark .est-tooltip {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .5);
+}
+.dark .est__segmento[aria-checked='true'] {
+    background: var(--blanco);
+}
+.dark .est-cifras > div {
+    background: var(--crema);
+}
+.dark .est-leyenda__marca--rayada {
+    background: repeating-linear-gradient(45deg, #f5b800 0 3px, #1a1411 3px 6px);
+}
+/* ================= Selects y su lista desplegable ================= */
+.dark select,
+.dark select option,
+.dark select optgroup {
+    background-color: var(--blanco);
+    color: var(--tinta);
+    color-scheme: dark;
+}
+
+.dark select option:checked,
+.dark select option:hover {
+    background-color: var(--rojo);
+    color: #fff;
+}
+/* ================= Evaluaciones (invitar, calificar, resultados) ================= */
+.dark .evaluation-item {
+    background: var(--blanco);
+}
+
+.dark .note-field input,
+.dark .evaluation-detail textarea {
+    background: var(--blanco);
+    color: var(--tinta);
+    border-color: var(--borde);
+}
+
+.dark .note-field input:disabled,
+.dark .evaluation-detail textarea:disabled {
+    background: var(--crema);
+    color: var(--gris);
+}
+
+.dark .evaluation-detail textarea::placeholder {
+    color: var(--gris);
+}
+
+.dark .evaluation-detail textarea:focus,
+.dark .note-field input:focus {
+    border-color: var(--rojo);
+    outline: none;
+}

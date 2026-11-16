@@ -1,13 +1,18 @@
-/** Paleta de la guía visual ITCA-FEPADE. */
+/**
+ * Paleta de la guía visual ITCA-FEPADE.
+ * Cada color apunta a una variable CSS definida en estadisticas.css (modo claro)
+ * y en tema-oscuro.css (modo oscuro), así las gráficas cambian con el tema.
+ * Funcionan dentro del contenedor .est, que es donde se dibujan todas las gráficas.
+ */
 export const COLORES = {
-  rojo: '#B5260A',
-  dorado: '#F5B800',
-  crema: '#F7F3EE',
-  tinta: '#241B17',
-  gris: '#7A6F68',
-  borde: '#E8E1D9',
-  exito: '#2E7D32',
-  error: '#B3261E',
+  rojo: 'var(--est-rojo)',
+  dorado: 'var(--est-dorado)',
+  crema: 'var(--est-crema)',
+  tinta: 'var(--est-tinta)',
+  gris: 'var(--est-gris)',
+  borde: 'var(--est-borde)',
+  exito: 'var(--est-exito)',
+  error: 'var(--est-error)',
 } as const;
 
 export const FUENTE = "'Plus Jakarta Sans', system-ui, sans-serif";

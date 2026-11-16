@@ -25,7 +25,7 @@ interface Campo {
 const modules: Record<Module, { title: string; description: string; icon: Icono; roles: Rol[] }> = {
     usuarios: { title: 'Usuarios', description: 'Administra docentes, jurado y alumnos.', icon: Users, roles: ['ADMIN'] },
     materias: { title: 'Materias', description: 'Organiza las materias y su docente principal.', icon: BookOpen, roles: ['ADMIN', 'DOCENTE'] },
-    secciones: { title: 'Secciones', description: 'Crea las secciones de cada materia por ciclo.', icon: Layers, roles: ['ADMIN', 'DOCENTE'] },
+    secciones: { title: 'Secciones', description: 'Crea las secciones por ciclo, sus subsecciones (A, B, C) y asigna materias y docentes.', icon: Layers, roles: ['ADMIN', 'DOCENTE'] },
     grupos: { title: 'Alumnos y grupos', description: 'Crea grupos y asigna integrantes disponibles.', icon: GraduationCap, roles: ['ADMIN', 'DOCENTE'] },
     empresas: { title: 'Empresas', description: 'Registra las empresas vinculadas a los proyectos.', icon: Building2, roles: ['ADMIN', 'DOCENTE'] },
     proyectos: { title: 'Proyectos', description: 'Registra proyectos y consulta su información.', icon: FileText, roles: ['ADMIN', 'DOCENTE'] },
@@ -35,16 +35,18 @@ const modules: Record<Module, { title: string; description: string; icon: Icono;
 const emptyForms: Record<Module, Row> = {
     usuarios: { nombre: '', apellido: '', correo: '', password: '', rolId: '', activo: true },
     materias: { nombre: '', descripcion: '', docentePrincipalId: '' },
-    secciones: { nombre: '', ciclo: '', materiaId: '' },
+    secciones: { nombre: '', ciclo: '' },
     grupos: { nombre: '', asignacionId: '' },
     empresas: { nombre: '', contacto: '', correo: '', telefono: '' },
     proyectos: { titulo: '', descripcion: '', grupoId: '', empresaId: '', estado: 'ACTIVO' },
     criterios: { nombre: '', descripcion: '', ponderacion: '', nivel: '', nivelId: '' },
 }
 
-const etiquetaNivel: Record<string, string> = { MATERIA: 'Materia', SECCION: 'Sección', GRUPO: 'Grupo', PROYECTO: 'Proyecto' }
-const claveNivel: Record<string, string> = { MATERIA: 'materiaId', SECCION: 'seccionId', GRUPO: 'grupoId', PROYECTO: 'proyectoId' }
+const etiquetaNivel: Record<string, string> = { MATERIA: 'Materia', ASIGNACION: 'Materia en subsección', GRUPO: 'Grupo', PROYECTO: 'Proyecto' }
+const claveNivel: Record<string, string> = { MATERIA: 'materiaId', ASIGNACION: 'asignacionId', GRUPO: 'grupoId', PROYECTO: 'proyectoId' }
 const idsNumericos = ['docentePrincipalId', 'asignacionId', 'seccionId', 'grupoId', 'empresaId', 'materiaId', 'proyectoId', 'rolId', 'ponderacion']
+
+const asigVacia = { subseccionId: '', materiaId: '', docenteId: '' }
 
 const listData = (data: any): Row[] => (Array.isArray(data) ? data : data?.content ?? [])
 const get = async (url: string): Promise<Row[]> => listData((await api.get(url)).data)
@@ -79,6 +81,15 @@ function Modulo({ active }: { active: Module }) {
     const [members, setMembers] = useState<Row[]>([])
     const [detail, setDetail] = useState<Row | null>(null)
 
+    // subsecciones y asignaciones de una sección
+    const [seccionSel, setSeccionSel] = useState<Row | null>(null)
+    const [subsecciones, setSubsecciones] = useState<Row[]>([])
+    const [letra, setLetra] = useState('')
+    const [asignaciones, setAsignaciones] = useState<Row[]>([])
+    const [listaMaterias, setListaMaterias] = useState<Row[]>([])
+    const [listaDocentes, setListaDocentes] = useState<Row[]>([])
+    const [asig, setAsig] = useState(asigVacia)
+
     const load = async () => {
         setError('')
         try { setRows(await get(`/${active}`)) }
@@ -87,11 +98,10 @@ function Modulo({ active }: { active: Module }) {
         const pedidos: Record<string, () => Promise<Row[]>> = {}
         if (active === 'usuarios') pedidos.roles = () => get('/roles')
         if (active === 'materias') pedidos.docentes = cargarDocentes
-        if (active === 'secciones') pedidos.materias = () => get('/materias')
         if (active === 'grupos') pedidos.asignaciones = () => get('/asignaciones')
         if (active === 'proyectos') { pedidos.grupos = () => get('/grupos'); pedidos.empresas = () => get('/empresas') }
         if (active === 'criterios') {
-            pedidos.materias = () => get('/materias'); pedidos.secciones = () => get('/secciones')
+            pedidos.materias = () => get('/materias'); pedidos.asignaciones = () => get('/asignaciones')
             pedidos.grupos = () => get('/grupos'); pedidos.proyectos = () => get('/proyectos')
         }
         const claves = Object.keys(pedidos)
@@ -115,13 +125,13 @@ function Modulo({ active }: { active: Module }) {
     // ---------- opciones de los selects ----------
     const opciones = (arr: Row[] | undefined, etiqueta: (x: Row) => string): [string, string][] =>
         (arr ?? []).map((x) => [String(x.id), etiqueta(x)])
-    const etiquetaSeccion = (x: Row) => `${x.nombre} · ${x.ciclo}${x.materiaNombre ? ` · ${x.materiaNombre}` : ''}`
     const etiquetaAsignacion = (x: Row) =>
-        `${x.materiaNombre ?? x.materia ?? 'Materia'} · ${x.seccionNombre ?? x.seccion ?? 'Sección'}${x.ciclo ? ` · ${x.ciclo}` : ''}${x.subseccionLetra ? ` · ${x.subseccionLetra}` : ''} · ${x.docenteNombre ?? x.docente ?? 'Docente'}`
+        `${x.materiaNombre ?? x.materia ?? 'Materia'} · ${x.seccionNombre ?? x.seccion ?? 'Sección'}${x.subseccionLetra ?? ''}${x.ciclo ? ` · ${x.ciclo}` : ''} · ${x.docenteNombre ?? x.docente ?? 'Docente'}`
+    const etiquetaGrupo = (x: Row) => `${x.nombre}${x.asignacionNombre ? ` · ${x.asignacionNombre}` : ''}`
     const nivelOpciones: Record<string, [string, string][]> = {
         MATERIA: opciones(lookups.materias, (x) => x.nombre),
-        SECCION: opciones(lookups.secciones, etiquetaSeccion),
-        GRUPO: opciones(lookups.grupos, (x) => x.nombre),
+        ASIGNACION: opciones(lookups.asignaciones, etiquetaAsignacion),
+        GRUPO: opciones(lookups.grupos, etiquetaGrupo),
         PROYECTO: opciones(lookups.proyectos, (x) => x.titulo),
     }
 
@@ -139,9 +149,8 @@ function Modulo({ active }: { active: Module }) {
             { key: 'docentePrincipalId', label: 'Docente principal', required: true, options: opciones(lookups.docentes, (x) => texto(x)) },
         ],
         secciones: [
-            { key: 'nombre', label: 'Sección (ej. A)', required: true },
+            { key: 'nombre', label: 'Sección (ej. SOFT41)', required: true },
             { key: 'ciclo', label: 'Ciclo (ej. 02-2026)', required: true },
-            { key: 'materiaId', label: 'Materia', required: true, options: opciones(lookups.materias, (x) => x.nombre) },
         ],
         grupos: [
             { key: 'nombre', label: 'Nombre', required: true },
@@ -234,15 +243,92 @@ function Modulo({ active }: { active: Module }) {
         catch (e) { setError(mensajeError(e, 'No se pudo quitar el alumno.')) }
     }
 
+    // ---------- subsecciones y asignaciones de una sección ----------
+    const cargarSubsecciones = async (s: Row) => {
+        try { setSubsecciones(await get(`/subsecciones/detalle?seccionId=${s.id}`)) }
+        catch (e) { setError(mensajeError(e, 'No fue posible cargar las subsecciones.')) }
+    }
+    const cargarAsignaciones = async (s: Row) => {
+        try { setAsignaciones(await get(`/asignaciones/detalle?seccionId=${s.id}`)) }
+        catch (e) { setError(mensajeError(e, 'No fue posible cargar las materias de la sección.')) }
+    }
+    const abrirSeccion = async (s: Row) => {
+        setSeccionSel(s); setLetra(''); setAsig(asigVacia)
+        setError(''); setNotice('')
+        void cargarSubsecciones(s)
+        void cargarAsignaciones(s)
+        try {
+            const [materias, docentes] = await Promise.all([get('/materias'), cargarDocentes()])
+            setListaMaterias(materias)
+            setListaDocentes(docentes)
+        } catch (e) { setError(mensajeError(e, 'No fue posible cargar materias y docentes.')) }
+    }
+    const refrescarSeccion = async (s: Row) => {
+        await Promise.all([cargarSubsecciones(s), cargarAsignaciones(s), load()])
+    }
+    const agregarSubseccion = async (valor: string) => {
+        if (!seccionSel) return
+        const l = valor.trim().toUpperCase()
+        if (!l) return
+        setError(''); setNotice('')
+        try {
+            await api.post('/subsecciones', { seccionId: seccionSel.id, letra: l })
+            setLetra('')
+            setNotice(`Subsección ${seccionSel.nombre}${l} creada.`)
+            await refrescarSeccion(seccionSel)
+        } catch (e) { setError(mensajeError(e, 'No se pudo crear la subsección.')) }
+    }
+    const quitarSubseccion = async (s: Row) => {
+        if (!seccionSel || !window.confirm(`¿Eliminar la subsección ${s.nombre}?`)) return
+        setError(''); setNotice('')
+        try {
+            await api.delete(`/subsecciones/${s.id}`)
+            setNotice('Subsección eliminada.')
+            await refrescarSeccion(seccionSel)
+        } catch (e) { setError(mensajeError(e, 'No se pudo eliminar la subsección.')) }
+    }
+    const agregarAsignacion = async () => {
+        if (!seccionSel) return
+        if (!asig.materiaId || !asig.docenteId) { setError('Elige la materia y el docente.'); return }
+        setError(''); setNotice('')
+        try {
+            const { data } = await api.post('/asignaciones', {
+                seccionId: seccionSel.id,
+                subseccionId: asig.subseccionId ? Number(asig.subseccionId) : null,
+                materiaId: Number(asig.materiaId),
+                docenteId: Number(asig.docenteId),
+            })
+            setNotice(`Materia asignada en ${data.creadas} subsección(es)` + (data.omitidas ? ` (${data.omitidas} ya la tenían).` : '.'))
+            await refrescarSeccion(seccionSel)
+        } catch (e) { setError(mensajeError(e, 'No se pudo asignar la materia.')) }
+    }
+    const quitarAsignacion = async (a: Row) => {
+        if (!seccionSel || !window.confirm(`¿Quitar ${a.materiaNombre} de ${a.subseccion}?`)) return
+        setError(''); setNotice('')
+        try {
+            await api.delete(`/asignaciones/${a.id}`)
+            setNotice('Asignación eliminada.')
+            await refrescarSeccion(seccionSel)
+        } catch (e) { setError(mensajeError(e, 'No se pudo quitar la asignación.')) }
+    }
+
     // ---------- tabla ----------
     const nombreDe = (arr: Row[] | undefined, id: any) => {
         const x = (arr ?? []).find((i) => i.id === id)
         return x ? (x.titulo ?? x.nombre) : ''
     }
     const nombreNivel = (r: Row) => {
-        const arr = r.nivel === 'MATERIA' ? lookups.materias : r.nivel === 'SECCION' ? lookups.secciones
-            : r.nivel === 'GRUPO' ? lookups.grupos : lookups.proyectos
-        return `${etiquetaNivel[r.nivel] ?? r.nivel}: ${nombreDe(arr, r.nivelId) || `#${r.nivelId}`}`
+        let nombre = ''
+        if (r.nivel === 'MATERIA') nombre = nombreDe(lookups.materias, r.nivelId)
+        else if (r.nivel === 'PROYECTO') nombre = nombreDe(lookups.proyectos, r.nivelId)
+        else if (r.nivel === 'ASIGNACION') {
+            const x = (lookups.asignaciones ?? []).find((i) => i.id === r.nivelId)
+            nombre = x ? etiquetaAsignacion(x) : ''
+        } else if (r.nivel === 'GRUPO') {
+            const x = (lookups.grupos ?? []).find((i) => i.id === r.nivelId)
+            nombre = x ? etiquetaGrupo(x) : ''
+        }
+        return `${etiquetaNivel[r.nivel] ?? r.nivel}: ${nombre || `#${r.nivelId}`}`
     }
 
     const columnas: Record<Module, { th: string; td: (r: Row) => ReactNode }[]> = {
@@ -258,7 +344,7 @@ function Modulo({ active }: { active: Module }) {
         secciones: [
             { th: 'Sección', td: (r) => r.nombre },
             { th: 'Ciclo', td: (r) => r.ciclo },
-            { th: 'Materia', td: (r) => r.materiaNombre ?? nombreDe(lookups.materias, r.materiaId) },
+            { th: 'Materias', td: (r) => (r.materias ?? []).join(', ') || 'Sin materias asignadas' },
         ],
         grupos: [
             { th: 'Grupo', td: (r) => r.nombre },
@@ -319,9 +405,9 @@ function Modulo({ active }: { active: Module }) {
                                 )}
                             </label>
                         ))}
-                        {active === 'criterios' && <p className="nota-info">Se usa el nivel más específico cuya suma sea 100 %: proyecto → grupo → sección → materia.</p>}
+                        {active === 'criterios' && <p className="nota-info">Se usa el nivel más específico cuya suma sea 100 %: proyecto → grupo → materia en subsección → materia.</p>}
                         {active === 'grupos' && (lookups.asignaciones ?? []).length === 0 && (
-                            <p className="nota-info">No hay asignaciones disponibles. Primero debe crearse una asignación.</p>
+                            <p className="nota-info">No hay asignaciones disponibles. Créalas en Secciones, con el icono de capas.</p>
                         )}
                         <div className="form-actions">
                             <button className="primary-button" type="submit"><Save size={16} /> {editing ? 'Actualizar' : 'Guardar'}</button>
@@ -356,6 +442,7 @@ function Modulo({ active }: { active: Module }) {
                                             <button onClick={() => edit(row)} title="Editar"><Edit3 size={15} /></button>
                                             <button onClick={() => void remove(row.id)} title="Eliminar"><Trash2 size={15} /></button>
                                             {active === 'grupos' && <button onClick={() => abrirGrupo(row)} title="Integrantes"><Users size={15} /></button>}
+                                            {active === 'secciones' && <button onClick={() => void abrirSeccion(row)} title="Subsecciones y materias"><Layers size={15} /></button>}
                                         </div>
                                     </td>
                                 </tr>
@@ -380,6 +467,86 @@ function Modulo({ active }: { active: Module }) {
                             {members.map((m) => <div className="member-row" key={m.id}>{m.nombre} {m.apellido}<button onClick={() => void removeMember(m.id)}><X size={15} /></button></div>)}
                         </div>
                         <AlumnosDisponibles grupoId={grupoSel.id} onAgregado={() => void cargarIntegrantes(grupoSel)} />
+                    </div>
+                </section>
+            )}
+
+            {active === 'secciones' && seccionSel && (
+                <section className="panel members-panel">
+                    <div className="panel-heading">
+                        <div><span className="panel-kicker">SUBSECCIONES Y MATERIAS</span><h2>{seccionSel.nombre} · {seccionSel.ciclo}</h2></div>
+                        <button className="icon-button" onClick={() => setSeccionSel(null)}><X size={18} /></button>
+                    </div>
+                    <div className="members-grid">
+                        <div>
+                            <h3>Subsecciones creadas</h3>
+                            {subsecciones.length === 0 && <p className="nota-info">Esta sección aún no tiene subsecciones.</p>}
+                            {subsecciones.map((s) => (
+                                <div className="member-row" key={s.id}>
+                                    <span>{s.nombre}</span>
+                                    <button onClick={() => void quitarSubseccion(s)} title="Eliminar"><Trash2 size={15} /></button>
+                                </div>
+                            ))}
+                        </div>
+                        <div>
+                            <h3>Agregar subsección</h3>
+                            <div className="preset-row">
+                                {['A', 'B', 'C'].filter((l) => !subsecciones.some((s) => s.letra === l)).map((l) => (
+                                    <button type="button" className="preset-btn" key={l} onClick={() => void agregarSubseccion(l)}>
+                                        {seccionSel.nombre}{l}
+                                    </button>
+                                ))}
+                            </div>
+                            <form onSubmit={(e) => { e.preventDefault(); void agregarSubseccion(letra) }} style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+                                <label className="gestion-field">
+                                    <span>Otra letra (por ejemplo D)</span>
+                                    <input maxLength={5} value={letra} onChange={(e) => setLetra(e.target.value)} />
+                                </label>
+                                <div className="form-actions">
+                                    <button className="primary-button" type="submit"><Plus size={16} /> Agregar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 22 }}>
+                        <h3>Materias y docentes</h3>
+                        {asignaciones.length === 0 && <p className="nota-info">Esta sección aún no tiene materias asignadas.</p>}
+                        {asignaciones.map((a) => (
+                            <div className="member-row" key={a.id}>
+                                <span>{a.materiaNombre} · {a.subseccion} · {a.docenteNombre}</span>
+                                <button onClick={() => void quitarAsignacion(a)} title="Quitar"><Trash2 size={15} /></button>
+                            </div>
+                        ))}
+
+                        <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+                            <label className="gestion-field">
+                                <span>Materia</span>
+                                <select value={asig.materiaId} onChange={(e) => setAsig({ ...asig, materiaId: e.target.value })}>
+                                    <option value="">Selecciona…</option>
+                                    {listaMaterias.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                                </select>
+                            </label>
+                            <label className="gestion-field">
+                                <span>Docente</span>
+                                <select value={asig.docenteId} onChange={(e) => setAsig({ ...asig, docenteId: e.target.value })}>
+                                    <option value="">Selecciona…</option>
+                                    {listaDocentes.map((d) => <option key={d.id} value={d.id}>{texto(d)}</option>)}
+                                </select>
+                            </label>
+                            <label className="gestion-field">
+                                <span>Subsección</span>
+                                <select value={asig.subseccionId} onChange={(e) => setAsig({ ...asig, subseccionId: e.target.value })}>
+                                    <option value="">Todas las subsecciones de la sección</option>
+                                    {subsecciones.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                                </select>
+                            </label>
+                            <div className="form-actions">
+                                <button className="primary-button" type="button" onClick={() => void agregarAsignacion()}>
+                                    <Plus size={16} /> Asignar materia
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
             )}

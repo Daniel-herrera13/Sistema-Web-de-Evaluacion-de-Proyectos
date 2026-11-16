@@ -136,7 +136,9 @@ export default function Matriculas() {
                     >
                         <option value="">Seleccione…</option>
                         {secciones.map(s => (
-                            <option key={s.id} value={s.id}>{s.nombre} · {s.materia} · {s.ciclo}</option>
+                            <option key={s.id} value={s.id}>
+                                {s.nombre} · {s.ciclo}{s.materias?.length ? ` · ${s.materias.join(', ')}` : ''}
+                            </option>
                         ))}
                     </select>
                 </label>

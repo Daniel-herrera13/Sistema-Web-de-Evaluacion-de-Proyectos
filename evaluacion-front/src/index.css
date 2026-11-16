@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Habilita las variantes dark: de Tailwind con la clase .dark en <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
     --rojo: #B5260A;
     --dorado: #F5B800;
@@ -14,6 +17,24 @@
 
     --radio-boton: 10px;
     --radio-tarjeta: 16px;
+
+    color-scheme: light;
+}
+
+/* ================= MODO OSCURO ================= */
+.dark {
+    --rojo: #D9442A;
+    --dorado: #F5B800;
+    --crema: #1A1411;
+    --blanco: #261D19;
+    --tinta: #F2EBE4;
+    --gris: #A89D95;
+    --borde: #3A302B;
+    --exito: #66BB6A;
+    --alerta: #E0B84A;
+    --error: #F2766E;
+
+    color-scheme: dark;
 }
 
 * {
@@ -30,8 +51,25 @@ body {
     font-size: 15px;
     color: var(--tinta);
     background: var(--crema);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-button, input {
+button, input, select, textarea {
     font-family: inherit;
 }
+/* Botón de cambio de tema (usa las variables, funciona en claro y oscuro) */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-boton);
+    background: var(--blanco);
+    color: var(--tinta);
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.1s ease;
+}
+.theme-toggle:hover { border-color: var(--dorado); }
+.theme-toggle:active { transform: scale(0.95); }

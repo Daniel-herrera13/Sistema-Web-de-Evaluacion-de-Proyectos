@@ -2,7 +2,7 @@ export interface Seccion {
     id: number
     nombre: string
     materiaId: number
-    materia: string
+    materias: string[]
     ciclo: string
 }
 

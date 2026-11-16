@@ -61,17 +61,22 @@ export default function Esquema() {
     const [aviso, setAviso] = useState('')
 
     useEffect(() => {
-        api.get('/materias').then((r) => setMaterias(lista(r.data))).catch((e) => setError(mensajeError(e, 'No se pudieron cargar las materias.')))
+        api.get('/esquemas/materias').then((r) => setMaterias(lista(r.data))).catch((e) => setError(mensajeError(e, 'No se pudieron cargar las materias.')))
     }, [])
 
     const cargar = async (id: string) => {
         setMateriaId(id); setError(''); setAviso('')
+        // limpia el estado de la materia anterior
+        setDoc('100'); setAuto('0'); setPub('0'); setCritAuto([]); setCritPub([])
         if (!id) return
         try {
             const { data } = await api.get(`/esquemas/materia/${id}`)
             setDoc(String(data.pesoDocenteJurado)); setAuto(String(data.pesoAutoevaluacion)); setPub(String(data.pesoPublico))
             setCritAuto(aItems(data.criteriosAutoevaluacion)); setCritPub(aItems(data.criteriosPublico))
-        } catch (e) { setError(mensajeError(e, 'No se pudo cargar el esquema de la materia.')) }
+        } catch (e) {
+            setMateriaId('')   // si no se pudo cargar, no se muestra un formulario con datos de otra materia
+            setError(mensajeError(e, 'No se pudo cargar el esquema de la materia.'))
+        }
     }
 
     const aplicarAtajo = (a: typeof atajos[number]) => {
@@ -146,6 +151,9 @@ export default function Esquema() {
 
                     {num(doc) > 0 && (
                         <p className="nota-info">Los criterios de docente o jurado se definen en <strong>Criterios</strong> y se heredan de materia, sección, grupo o proyecto.</p>
+                    )}
+                    {num(auto) === 0 && num(pub) === 0 && (
+                        <p className="nota-info">Para definir criterios de autoevaluación o de evaluación pública, asigna un porcentaje mayor a 0 a esa modalidad.</p>
                     )}
                     {num(auto) > 0 && <Criterios titulo="Criterios de autoevaluación" items={critAuto} onChange={setCritAuto} />}
                     {num(pub) > 0 && <Criterios titulo="Criterios de evaluación pública" items={critPub} onChange={setCritPub} />}
