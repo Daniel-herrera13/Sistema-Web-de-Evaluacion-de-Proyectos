@@ -29,4 +29,5 @@ public class EsquemaDto {
                            List<Criterio> criteriosPublico) {}
 
     public record PublicoEstado(String codigo, boolean abierto, long evaluaciones) {}
+    public record MateriaOpcion(Long id, String nombre) {}
 }

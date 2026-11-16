@@ -16,10 +16,6 @@ public class Seccion {
     @Column(nullable = false, length = 50)
     private String nombre;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "materia_id")
-    private Materia materia;
-
     @Column(nullable = false, length = 20)
     private String ciclo;
 }

@@ -17,18 +17,18 @@ public class CriterioController {
 
     @GetMapping
     public List<CriterioDto.Response> listar(@RequestParam(required = false) Long materiaId,
-                                             @RequestParam(required = false) Long seccionId,
+                                             @RequestParam(required = false) Long asignacionId,
                                              @RequestParam(required = false) Long grupoId,
                                              @RequestParam(required = false) Long proyectoId) {
-        return service.listar(materiaId, seccionId, grupoId, proyectoId);
+        return service.listar(materiaId, asignacionId, grupoId, proyectoId);
     }
 
     @GetMapping("/efectivos")
     public CriterioDto.Efectivos efectivos(@RequestParam(required = false) Long proyectoId,
                                            @RequestParam(required = false) Long grupoId,
-                                           @RequestParam(required = false) Long seccionId,
+                                           @RequestParam(required = false) Long asignacionId,
                                            @RequestParam(required = false) Long materiaId) {
-        return service.efectivos(proyectoId, grupoId, seccionId, materiaId);
+        return service.efectivos(proyectoId, grupoId, asignacionId, materiaId);
     }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)

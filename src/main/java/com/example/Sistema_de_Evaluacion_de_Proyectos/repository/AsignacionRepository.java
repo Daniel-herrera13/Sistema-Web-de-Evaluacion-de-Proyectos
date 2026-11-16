@@ -9,4 +9,7 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
     List<Asignacion> findBySubseccionId(Long subseccionId);
     List<Asignacion> findByDocenteId(Long docenteId);
     boolean existsBySubseccionIdAndMateriaId(Long subseccionId, Long materiaId);
+    List<Asignacion> findBySubseccionSeccionId(Long seccionId);
+    boolean existsByMateriaIdAndDocenteId(Long materiaId, Long docenteId);
+
 }

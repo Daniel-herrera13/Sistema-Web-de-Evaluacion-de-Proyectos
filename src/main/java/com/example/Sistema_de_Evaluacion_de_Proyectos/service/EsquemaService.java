@@ -7,6 +7,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.model.CriterioEsquema.Moda
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.EsquemaEvaluacion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Materia;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Usuario;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.AsignacionRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.CriterioEsquemaRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.EsquemaEvaluacionRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.MateriaRepository;
@@ -15,7 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class EsquemaService {
     private final CriterioEsquemaRepository criteriosRepo;
     private final MateriaRepository materias;
     private final AccesoService acceso;
+    private final AsignacionRepository asignaciones;
 
     @Transactional(readOnly = true)
     public EsquemaDto.Response obtener(Long materiaId, String correo) {
@@ -61,10 +66,8 @@ public class EsquemaService {
         e.setPesoPublico(r.pesoPublico());
         e = esquemas.save(e);
 
-        // Si ya hay evaluaciones con estos criterios, la BD lo rechaza y responde 409
-        criteriosRepo.deleteAll(criteriosRepo.findByEsquemaId(e.getId()));
-        guardarCriterios(e, Modalidad.AUTOEVALUACION, auto);
-        guardarCriterios(e, Modalidad.PUBLICO, pub);
+        reemplazar(e, Modalidad.AUTOEVALUACION, auto);
+        reemplazar(e, Modalidad.PUBLICO, pub);
         return aDto(e);
     }
 
@@ -106,16 +109,54 @@ public class EsquemaService {
         }
     }
 
+    /** Solo recrea los criterios si cambiaron, para no romper evaluaciones que ya los usan. */
+    private void reemplazar(EsquemaEvaluacion e, Modalidad mod, List<EsquemaDto.Item> nuevos) {
+        List<CriterioEsquema> actuales = criteriosRepo.findByEsquemaIdAndModalidad(e.getId(), mod);
+        if (iguales(actuales, nuevos)) return;
+        criteriosRepo.deleteAll(actuales);
+        guardarCriterios(e, mod, nuevos);
+    }
+
+    private boolean iguales(List<CriterioEsquema> actuales, List<EsquemaDto.Item> nuevos) {
+        List<String> a = actuales.stream()
+                .map(c -> clave(c.getNombre(), c.getDescripcion(), c.getPonderacion()))
+                .sorted()
+                .toList();
+        List<String> b = nuevos.stream()
+                .map(i -> clave(i.nombre(), i.descripcion(), i.ponderacion()))
+                .sorted()
+                .toList();
+        return a.equals(b);
+    }
+
+    private String clave(String nombre, String descripcion, BigDecimal ponderacion) {
+        return nombre.trim() + "|" + (descripcion == null ? "" : descripcion.trim()) + "|"
+                + ponderacion.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
     private Materia materia(Long id) {
         return materias.findById(id).orElseThrow(() -> Http.noEncontrado("Materia no encontrada"));
     }
-
+    private boolean puedeGestionar(Usuario u, Materia m) {
+        String rol = acceso.rol(u);
+        if ("admin".equals(rol)) return true;
+        if (!"docente".equals(rol)) return false;
+        boolean principal = m.getDocentePrincipal() != null
+                && m.getDocentePrincipal().getId().equals(u.getId());
+        return principal || asignaciones.existsByMateriaIdAndDocenteId(m.getId(), u.getId());
+    }
     private void exigirGestion(Usuario u, Materia m) {
-        boolean admin = "admin".equals(acceso.rol(u));
-        boolean principal = "docente".equals(acceso.rol(u))
-                && m.getDocentePrincipal() != null && m.getDocentePrincipal().getId().equals(u.getId());
-        if (!admin && !principal)
-            throw Http.prohibido("Solo el administrador o el docente de la materia puede configurar el esquema");
+        if (!puedeGestionar(u, m))
+            throw Http.prohibido("Solo el administrador o un docente que imparta la materia puede configurar el esquema");
+    }
+    @Transactional(readOnly = true)
+    public List<EsquemaDto.MateriaOpcion> materiasGestionables(String correo) {
+        Usuario u = acceso.actor(correo);
+        return materias.findAll().stream()
+                .filter(m -> puedeGestionar(u, m))
+                .sorted(Comparator.comparing(Materia::getNombre))
+                .map(m -> new EsquemaDto.MateriaOpcion(m.getId(), m.getNombre()))
+                .toList();
     }
 
     private EsquemaDto.Response aDto(EsquemaEvaluacion e) {

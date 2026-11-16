@@ -1,12 +1,12 @@
 package com.example.Sistema_de_Evaluacion_de_Proyectos.controller;
 
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.AsignacionDto;
-import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.AsignacionRepository;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.service.AsignacionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -14,19 +14,27 @@ import java.util.List;
 @RequestMapping("/api/asignaciones")
 @RequiredArgsConstructor
 public class AsignacionController {
-    private final AsignacionRepository asignaciones;
+    private final AsignacionService service;
 
     @GetMapping
-    @Transactional(readOnly = true)
     public List<AsignacionDto.Response> listar() {
-        return asignaciones.findAll().stream()
-                .map(a -> new AsignacionDto.Response(
-                        a.getId(),
-                        a.getMateria().getNombre(),
-                        a.getSubseccion().getSeccion().getNombre(),
-                        a.getSubseccion().getSeccion().getCiclo(),
-                        a.getSubseccion().getLetra(),
-                        a.getDocente().getNombre() + " " + a.getDocente().getApellido()))
-                .toList();
+        return service.listar();
+    }
+
+    // GET /api/asignaciones/detalle?seccionId=1
+    @GetMapping("/detalle")
+    public List<AsignacionDto.Detalle> detalle(@RequestParam Long seccionId) {
+        return service.detalle(seccionId);
+    }
+
+    @PostMapping
+    public ResponseEntity<AsignacionDto.Resultado> crear(@Valid @RequestBody AsignacionDto.Guardar r) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(r));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        service.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

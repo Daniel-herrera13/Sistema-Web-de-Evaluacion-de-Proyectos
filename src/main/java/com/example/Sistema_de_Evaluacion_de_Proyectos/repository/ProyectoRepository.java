@@ -13,4 +13,5 @@ public interface ProyectoRepository extends JpaRepository<Proyecto, Long> {
     boolean existsByEmpresaId(Long empresaId);
     Optional<Proyecto> findByCodigoPublico(String codigo);
     boolean existsByCodigoPublico(String codigo);
+    List<Proyecto> findByGrupoAsignacionDocenteId(Long docenteId);
 }

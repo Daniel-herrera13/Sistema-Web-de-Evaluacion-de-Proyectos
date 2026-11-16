@@ -137,7 +137,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // Sección SOFT41 con subsecciones A y B. Cada alumno se matricula en UNA sola subsección.
         // CORRECCIÓN: la entidad Seccion exige materia (materia_id NOT NULL), así que se le asigna una.
-        Seccion soft41 = seccion("SOFT41", "02-2026", web);
+        Seccion soft41 = seccion("SOFT41", "02-2026");;
         Subseccion soft41a = subseccion("A", soft41);
         Subseccion soft41b = subseccion("B", soft41);
 
@@ -303,11 +303,10 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     // CORRECCIÓN: ahora recibe la materia y se la asigna a la sección.
-    private Seccion seccion(String nombre, String ciclo, Materia materia) {
+    private Seccion seccion(String nombre, String ciclo) {
         Seccion s = new Seccion();
         s.setNombre(nombre);
         s.setCiclo(ciclo);
-        s.setMateria(materia);
         return secciones.save(s);
     }
 

@@ -8,12 +8,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/esquemas")
 @RequiredArgsConstructor
 public class EsquemaController {
     private final EsquemaService esquemas;
     private final PublicoService publico;
+
+    @GetMapping("/materias")
+    public List<EsquemaDto.MateriaOpcion> materias(Authentication auth) {
+        return esquemas.materiasGestionables(auth.getName());
+    }
 
     @GetMapping("/materia/{materiaId}")
     public EsquemaDto.Response obtener(@PathVariable Long materiaId, Authentication auth) {

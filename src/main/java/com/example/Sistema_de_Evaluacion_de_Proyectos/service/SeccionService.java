@@ -2,10 +2,10 @@ package com.example.Sistema_de_Evaluacion_de_Proyectos.service;
 
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.SeccionDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Errores;
-import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Materia;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Seccion;
-import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.MateriaRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.SeccionRepository;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.SubseccionRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,32 +15,37 @@ import java.util.List;
 public class SeccionService {
 
     private final SeccionRepository secciones;
-    private final MateriaRepository materias;
+    private final SubseccionRepository subsecciones;
 
-    public SeccionService(SeccionRepository secciones, MateriaRepository materias) {
+    public SeccionService(SeccionRepository secciones, SubseccionRepository subsecciones) {
         this.secciones = secciones;
-        this.materias = materias;
+        this.subsecciones = subsecciones;
     }
 
     @Transactional(readOnly = true)
     public List<SeccionDto.Respuesta> listar(Long materiaId) {
-        List<Seccion> lista = materiaId == null ? secciones.findAll() : secciones.findByMateriaId(materiaId);
-        return lista.stream().map(SeccionDto.Respuesta::de).toList();
+        List<Seccion> lista = materiaId == null
+                ? secciones.findAll(Sort.by("nombre"))
+                : secciones.findByMateriaAsignada(materiaId);
+        return lista.stream().map(this::aDto).toList();
     }
 
     @Transactional(readOnly = true)
     public SeccionDto.Respuesta obtener(Long id) {
-        return SeccionDto.Respuesta.de(buscar(id));
+        return aDto(buscar(id));
     }
 
     @Transactional
     public SeccionDto.Respuesta crear(SeccionDto.Guardar r) {
         String nombre = r.nombre().trim();
         String ciclo = r.ciclo().trim();
-        if (secciones.existsByMateriaIdAndNombreIgnoreCaseAndCicloIgnoreCase(r.materiaId(), nombre, ciclo)) {
-            throw Errores.conflicto("Ya existe la sección \"" + nombre + "\" en esa materia para el ciclo " + ciclo);
+        if (secciones.existsByNombreIgnoreCaseAndCicloIgnoreCase(nombre, ciclo)) {
+            throw Errores.conflicto("Ya existe la sección \"" + nombre + "\" en el ciclo " + ciclo);
         }
-        return SeccionDto.Respuesta.de(secciones.save(aplicar(new Seccion(), r, nombre, ciclo)));
+        Seccion s = new Seccion();
+        s.setNombre(nombre);
+        s.setCiclo(ciclo);
+        return aDto(secciones.save(s));
     }
 
     @Transactional
@@ -48,25 +53,26 @@ public class SeccionService {
         Seccion s = buscar(id);
         String nombre = r.nombre().trim();
         String ciclo = r.ciclo().trim();
-        if (secciones.existsByMateriaIdAndNombreIgnoreCaseAndCicloIgnoreCaseAndIdNot(r.materiaId(), nombre, ciclo, id)) {
-            throw Errores.conflicto("Ya existe otra sección \"" + nombre + "\" en esa materia para el ciclo " + ciclo);
+        if (secciones.existsByNombreIgnoreCaseAndCicloIgnoreCaseAndIdNot(nombre, ciclo, id)) {
+            throw Errores.conflicto("Ya existe otra sección \"" + nombre + "\" en el ciclo " + ciclo);
         }
-        return SeccionDto.Respuesta.de(secciones.save(aplicar(s, r, nombre, ciclo)));
+        s.setNombre(nombre);
+        s.setCiclo(ciclo);
+        return aDto(secciones.save(s));
     }
 
     @Transactional
     public void eliminar(Long id) {
         buscar(id);
+        if (!subsecciones.findBySeccionId(id).isEmpty()) {
+            throw Errores.conflicto("La sección tiene subsecciones; elimínalas primero");
+        }
         secciones.deleteById(id);
     }
 
-    private Seccion aplicar(Seccion s, SeccionDto.Guardar r, String nombre, String ciclo) {
-        Materia materia = materias.findById(r.materiaId())
-                .orElseThrow(() -> Errores.invalido("La materia indicada no existe"));
-        s.setNombre(nombre);
-        s.setCiclo(ciclo);
-        s.setMateria(materia);
-        return s;
+    private SeccionDto.Respuesta aDto(Seccion s) {
+        return new SeccionDto.Respuesta(s.getId(), s.getNombre(), s.getCiclo(),
+                secciones.nombresDeMaterias(s.getId()));
     }
 
     private Seccion buscar(Long id) {
