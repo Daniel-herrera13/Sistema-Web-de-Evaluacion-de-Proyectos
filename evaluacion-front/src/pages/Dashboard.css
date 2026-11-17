@@ -23,7 +23,9 @@
 }
 
 .sidebar-top { padding: 38px 24px 24px; }
-.brand { display: flex; gap: 12px; align-items: flex-start; margin: 0 10px 56px; }
+.brand { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; margin: 0 10px 56px; }
+.brand-wordmark { display: block; width: 218px; max-width: 100%; height: auto; padding: 5px; border-radius: 7px; background: #fff; }
+.institution-footer { font-size: 11px; letter-spacing: .04em; color: #f4c2b5; }
 .brand-mark { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255,255,255,.35); border-radius: 11px; color: #ffd26b; }
 .brand-text strong { display: block; font-size: 15px; line-height: 1.25; }
 .brand-text span { display: block; margin-top: 9px; color: #f4c2b5; font-size: 10px; }
@@ -81,6 +83,7 @@
 .sidebar-collapsed .sidebar { width: 82px; flex-basis: 82px; }
 .sidebar-collapsed .brand-text, .sidebar-collapsed .nav-heading, .sidebar-collapsed .nav-item span, .sidebar-collapsed .logout-button span, .sidebar-collapsed .sidebar-bottom > strong { display: none; }
 .sidebar-collapsed .brand { justify-content: center; margin: 0 0 56px; }
+.sidebar-collapsed .brand-wordmark { width: 48px; padding: 2px; }
 .sidebar-collapsed .nav-item { justify-content: center; padding: 12px 0; }
 .sidebar-collapsed .sidebar-top, .sidebar-collapsed .sidebar-bottom { padding-left: 16px; padding-right: 16px; }
 

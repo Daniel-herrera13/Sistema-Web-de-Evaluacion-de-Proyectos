@@ -8,8 +8,6 @@ import { mensajeError } from '../utils/errores'
 type Row = Record<string, any>
 interface Item { nombre: string; descripcion: string; ponderacion: string }
 
-const FORMATO_CICLO = /^\d{2}-\d{4}$/
-
 const vacio = (): Item => ({ nombre: '', descripcion: '', ponderacion: '' })
 const num = (valor: string) => (valor === '' || Number.isNaN(Number(valor)) ? 0 : Number(valor))
 const redondear = (n: number) => Math.round(n * 100) / 100
@@ -60,8 +58,7 @@ export default function Esquema() {
     const [ciclo, setCiclo] = useState('')                       // '' = esquema general
     const [ciclosSecciones, setCiclosSecciones] = useState<string[]>([])
     const [ciclosPropios, setCiclosPropios] = useState<string[]>([])
-    const [ciclosNuevos, setCiclosNuevos] = useState<string[]>([])
-    const [nuevoCiclo, setNuevoCiclo] = useState('')
+    const [ciclosActivos, setCiclosActivos] = useState<string[]>([])
     const [heredado, setHeredado] = useState(false)              // el ciclo no tiene esquema propio: se ve el general
     const [enUso, setEnUso] = useState(false)                    // ya hay evaluaciones: solo lectura
     const [doc, setDoc] = useState('100')
@@ -75,13 +72,14 @@ export default function Esquema() {
 
     useEffect(() => {
         api.get('/esquemas/materias').then((r) => setMaterias(lista(r.data))).catch((e) => setError(mensajeError(e, 'No se pudieron cargar las materias.')))
+        api.get('/ciclos', { params: { activos: true } }).then((r) => setCiclosActivos(lista(r.data).map((c) => String(c.codigo)))).catch(() => undefined)
         // ciclos que ya existen en las secciones, como sugerencias
         api.get('/secciones')
             .then((r) => setCiclosSecciones([...new Set(lista(r.data).map((s) => String(s.ciclo ?? '')).filter(Boolean))]))
             .catch(() => { /* sin sugerencias de ciclo */ })
     }, [])
 
-    const ciclos = [...new Set([...ciclosSecciones, ...ciclosPropios, ...ciclosNuevos])].sort()
+    const ciclos = [...new Set([...ciclosActivos, ...ciclosSecciones, ...ciclosPropios])].sort()
 
     const cargar = async (id: string, cicloElegido = '') => {
         setMateriaId(id); setCiclo(cicloElegido); setError(''); setAviso('')
@@ -102,14 +100,6 @@ export default function Esquema() {
             setMateriaId(''); setCiclo('')   // si no se pudo cargar, no se muestra un formulario con datos de otra materia
             setError(mensajeError(e, 'No se pudo cargar el esquema de la materia.'))
         }
-    }
-
-    const agregarCiclo = () => {
-        const c = nuevoCiclo.trim()
-        if (!FORMATO_CICLO.test(c)) { setError('El ciclo debe tener el formato NN-AAAA, por ejemplo 01-2027.'); return }
-        if (!ciclosNuevos.includes(c)) setCiclosNuevos([...ciclosNuevos, c])
-        setNuevoCiclo('')
-        void cargar(materiaId, c)
     }
 
     const aplicarAtajo = (a: typeof atajos[number]) => {
@@ -173,10 +163,6 @@ export default function Esquema() {
                                     ))}
                                 </select>
                             </label>
-                            <div className="preset-row">
-                                <input className="mod-input" style={{ maxWidth: 200 }} placeholder="Nuevo ciclo, ej. 01-2027" value={nuevoCiclo} onChange={(e) => setNuevoCiclo(e.target.value)} />
-                                <button type="button" className="secondary-button" onClick={agregarCiclo}><Plus size={15} /> Agregar ciclo</button>
-                            </div>
                         </>
                     )}
                 </div>

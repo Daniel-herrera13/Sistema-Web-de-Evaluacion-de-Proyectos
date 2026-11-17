@@ -4,6 +4,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ReporteDto;
 import com.lowagie.text.Document;
 import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
+import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
@@ -13,14 +14,20 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -35,19 +42,45 @@ public class ExportService {
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Reporte");
 
+            int pictureIndex = workbook.addPicture(logoBytes(), Workbook.PICTURE_TYPE_PNG);
+            Drawing<?> drawing = sheet.createDrawingPatriarch();
+            ClientAnchor anchor = workbook.getCreationHelper().createClientAnchor();
+            anchor.setCol1(0);
+            anchor.setRow1(0);
+            anchor.setCol2(6);
+            anchor.setRow2(4);
+            drawing.createPicture(anchor, pictureIndex);
+
+            Row titulo = sheet.createRow(5);
+            titulo.setHeightInPoints(24);
+            titulo.createCell(0).setCellValue(tabla.titulo());
+            org.apache.poi.ss.usermodel.Font fuenteTitulo = workbook.createFont();
+            fuenteTitulo.setBold(true);
+            fuenteTitulo.setFontHeightInPoints((short) 14);
+            fuenteTitulo.setColor(IndexedColors.DARK_RED.getIndex());
+            CellStyle estiloTitulo = workbook.createCellStyle();
+            estiloTitulo.setFont(fuenteTitulo);
+            titulo.getCell(0).setCellStyle(estiloTitulo);
+            if (!tabla.cabeceras().isEmpty()) {
+                sheet.addMergedRegion(new CellRangeAddress(5, 5, 0, tabla.cabeceras().size() - 1));
+            }
+            Row fecha = sheet.createRow(6);
+            fecha.createCell(0).setCellValue("ITCA-FEPADE · Reporte académico · "
+                    + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
             org.apache.poi.ss.usermodel.Font negrita = workbook.createFont();
             negrita.setBold(true);
             CellStyle estiloCabecera = workbook.createCellStyle();
             estiloCabecera.setFont(negrita);
 
-            Row header = sheet.createRow(0);
+            Row header = sheet.createRow(7);
             for (int i = 0; i < tabla.cabeceras().size(); i++) {
                 var celda = header.createCell(i);
                 celda.setCellValue(tabla.cabeceras().get(i));
                 celda.setCellStyle(estiloCabecera);
             }
             for (int rowIndex = 0; rowIndex < tabla.filas().size(); rowIndex++) {
-                Row row = sheet.createRow(rowIndex + 1);
+                Row row = sheet.createRow(rowIndex + 8);
                 for (int columnIndex = 0; columnIndex < tabla.filas().get(rowIndex).size(); columnIndex++) {
                     Object value = tabla.filas().get(rowIndex).get(columnIndex);
                     if (value instanceof Number number) {
@@ -57,7 +90,7 @@ public class ExportService {
                     }
                 }
             }
-            sheet.createFreezePane(0, 1);   // el encabezado queda fijo al desplazarse
+            sheet.createFreezePane(0, 8);   // el encabezado queda fijo al desplazarse
             for (int i = 0; i < tabla.cabeceras().size(); i++) {
                 sheet.autoSizeColumn(i);
             }
@@ -82,6 +115,10 @@ public class ExportService {
                 return output.toByteArray();
             }
 
+            Image logo = imagenInstitucional();
+            logo.scaleToFit(155, 38);
+            logo.setAlignment(Element.ALIGN_LEFT);
+            document.add(logo);
             Paragraph titulo = new Paragraph(tabla.titulo(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12));
             titulo.setSpacingAfter(10f);
             document.add(titulo);
@@ -120,7 +157,6 @@ public class ExportService {
         Color etiqueta = new Color(74, 85, 104);
         Color fondo = new Color(248, 249, 251);
         Color borde = new Color(204, 213, 224);
-        Font marca = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, institucional);
         Font subtitulo = FontFactory.getFont(FontFactory.HELVETICA, 8, new Color(198, 138, 0));
         Font titulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Color.WHITE);
         Font etiquetaFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, etiqueta);
@@ -132,7 +168,13 @@ public class ExportService {
         PdfPTable encabezado = new PdfPTable(new float[]{3.2f, 1f});
         encabezado.setWidthPercentage(100);
         encabezado.setSpacingAfter(7f);
-        PdfPCell marcaCell = celda(new Phrase("ITCA - FEPADE", marca), Color.WHITE, 5, Element.ALIGN_LEFT);
+        PdfPCell marcaCell = new PdfPCell();
+        Image logo = imagenInstitucional();
+        logo.scaleToFit(160, 42);
+        marcaCell.addElement(logo);
+        marcaCell.setBackgroundColor(Color.WHITE);
+        marcaCell.setPadding(5);
+        marcaCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         marcaCell.setBorderColorBottom(institucional);
         marcaCell.setBorderWidthBottom(1.5f);
         encabezado.addCell(marcaCell);
@@ -255,6 +297,17 @@ public class ExportService {
         celda.setHorizontalAlignment(alineacion);
         celda.setVerticalAlignment(Element.ALIGN_MIDDLE);
         return celda;
+    }
+
+    private byte[] logoBytes() throws IOException {
+        try (InputStream input = getClass().getResourceAsStream("/branding/itca-fepade-logo.png")) {
+            if (input == null) throw new IOException("No se encontró el logo institucional en /branding/itca-fepade-logo.png");
+            return input.readAllBytes();
+        }
+    }
+
+    private Image imagenInstitucional() throws Exception {
+        return Image.getInstance(logoBytes());
     }
 
     private String parteTitulo(String titulo, String inicio, String fin) {

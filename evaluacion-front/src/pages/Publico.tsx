@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { CheckCircle2, GraduationCap, Lock } from 'lucide-react'
+import { CheckCircle2, Lock, Globe } from 'lucide-react'
 import api from '../api/axios'
 import { mensajeError } from '../utils/errores'
+import { useLanguage } from '../context/LanguageContext'
 import './Modalidades.css'
 
 const apiPublica = axios.create({ baseURL: api.defaults.baseURL })
@@ -11,6 +12,7 @@ const apiPublica = axios.create({ baseURL: api.defaults.baseURL })
 type Estado = 'ingresar-proyecto' | 'validar' | 'cargando' | 'listo' | 'enviado' | 'cerrado'
 
 export default function Publico() {
+    const { language, toggleLanguage } = useLanguage()
     const { codigo: codigoRuta = '' } = useParams<{ codigo: string }>()
     const [codigo, setCodigo] = useState(codigoRuta.trim().toUpperCase())
     const [codigoProyectoEntrada, setCodigoProyectoEntrada] = useState('')
@@ -93,7 +95,9 @@ export default function Publico() {
     return (
         <div className="pub">
             <header className="pub-head">
-                <span><GraduationCap size={18} /> ITCA-FEPADE - Evaluacion publica</span>
+                <button type="button" onClick={toggleLanguage} aria-label={language === 'es' ? 'Switch to English' : 'Cambiar a español'} style={{ position: 'absolute', top: 16, right: 16, display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid currentColor', borderRadius: 999, padding: '6px 10px', background: 'transparent', color: 'inherit', cursor: 'pointer' }}><Globe size={15} />{language.toUpperCase()}</button>
+                <img className="public-institution-logo" src="/itca-fepade-logo.png" alt="ITCA-FEPADE" />
+                <span>Evaluación pública de proyectos</span>
                 <h1>{info?.proyecto ?? 'Evaluar proyecto'}</h1>
                 {info && <p>{info.grupo}{info.empresa ? ` - ${info.empresa}` : ''}</p>}
             </header>

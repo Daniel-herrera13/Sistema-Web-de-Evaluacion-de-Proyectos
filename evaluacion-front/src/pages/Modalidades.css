@@ -80,6 +80,7 @@
 .pub { min-height: 100vh; color: var(--tinta); background: var(--crema); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
 .pub-head { padding: 26px 20px 40px; color: #fff; background: var(--rojo); }
 .pub-head > span { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; opacity: .9; }
+.pub-head .public-institution-logo { display: block; width: 190px; max-width: 75vw; height: auto; margin-bottom: 12px; padding: 5px; border-radius: 7px; background: #fff; }
 .pub-head h1 { margin: 12px 0 4px; font-size: 26px; line-height: 1.15; letter-spacing: -.02em; }
 .pub-head p { margin: 0; font-size: 13px; opacity: .9; }
 .pub-body { max-width: 560px; margin: -18px auto 0; padding: 0 16px 48px; }

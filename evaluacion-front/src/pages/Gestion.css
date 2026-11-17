@@ -34,6 +34,10 @@
 .criteria-total.scope-materia, .criteria-total.scope-asignacion, .criteria-total.scope-grupo, .criteria-total.scope-proyecto { border-left: 4px solid var(--scope-color); color: var(--scope-ink); background: var(--scope-bg); }
 .criteria-total.scope-materia.over, .criteria-total.scope-asignacion.over, .criteria-total.scope-grupo.over, .criteria-total.scope-proyecto.over { color: #8d291b; background: #ffe4dc; }
 .user-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px) auto; gap: 14px; align-items: end; margin-top: 18px; }
+.user-password-field { position: relative; }
+.user-password-field input { width: 100%; padding-right: 44px; }
+.user-password-toggle { position: absolute; top: 50%; right: 10px; display: grid; place-items: center; transform: translateY(-50%); border: 0; padding: 5px; color: var(--dashboard-muted); background: transparent; cursor: pointer; }
+.user-password-toggle:hover { color: var(--dashboard-text); }
 .user-filters .secondary-button { min-height: 38px; }
 .role-badge { display: inline-flex; align-items: center; padding: 5px 10px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 800; }
 .role-admin { color: #795600; border-color: #f0d47a; background: #fff4c2; }

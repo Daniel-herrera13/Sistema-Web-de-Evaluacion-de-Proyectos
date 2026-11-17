@@ -1,6 +1,6 @@
 import {
     BookOpen, Building2, Calculator, CheckCircle2, ClipboardCheck, FileText, GraduationCap,
-    LayoutDashboard, Layers, Percent, QrCode, UserPlus, Users, BarChart3, Award,
+    LayoutDashboard, Layers, Percent, QrCode, UserPlus, Users, BarChart3, Award, CalendarDays,
 } from 'lucide-react'
 import type { Rol } from '../context/AuthContext'
 
@@ -18,6 +18,7 @@ const gestion = (conUsuarios: boolean): GrupoMenu => ({
     titulo: 'GESTIÓN ACADÉMICA',
     items: [
         ...(conUsuarios ? [{ to: '/gestion/usuarios', label: 'Usuarios', icon: Users }] : []),
+        ...(conUsuarios ? [{ to: '/ciclos', label: 'Ciclos académicos', icon: CalendarDays }] : []),
         { to: '/gestion/materias', label: 'Materias', icon: BookOpen },
         { to: '/gestion/secciones', label: 'Secciones', icon: Layers },
         { to: '/matriculas', label: 'Matrículas', icon: UserPlus },

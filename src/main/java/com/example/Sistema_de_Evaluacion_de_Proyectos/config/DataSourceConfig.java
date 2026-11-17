@@ -19,29 +19,30 @@ public class DataSourceConfig {
 
     @Bean
     public DataSource dataSource(Environment env) {
-        String motor = env.getProperty("app.db.active", "mysql");
-        motor = motor == null || motor.isBlank() ? "mysql" : motor.trim().toLowerCase(Locale.ROOT);
+        String seleccionado = env.getProperty("app.db.active", "primary");
+        seleccionado = seleccionado == null || seleccionado.isBlank()
+                ? "primary" : seleccionado.trim().toLowerCase(Locale.ROOT);
         String prefijo;
         String nombre;
-        switch (motor) {
-            case "mysql", "mariadb" -> {
-                prefijo = "app.db.mysql";
-                nombre = "MySQL/MariaDB";
+        switch (seleccionado) {
+            case "primary" -> {
+                prefijo = "app.db.primary";
+                nombre = "MySQL (principal)";
             }
-            case "postgres", "postgresql" -> {
-                prefijo = "app.db.postgres";
-                nombre = "PostgreSQL";
+            case "fallback" -> {
+                prefijo = "app.db.fallback";
+                nombre = "PostgreSQL (respaldo)";
             }
             default -> throw new IllegalStateException(
-                    "Motor de base de datos inválido: " + motor + ". Usa DB_TYPE=mysql o DB_TYPE=postgres.");
+                    "Selección de base inválida: " + seleccionado + ". Usa app.db.active=primary o fallback en application.properties.");
         }
 
         log.info("Motor de base de datos seleccionado manualmente: {}", nombre);
         try {
             return crear(env, prefijo, nombre);
         } catch (Exception e) {
-            throw new IllegalStateException("No se pudo conectar al motor seleccionado (" + nombre
-                    + "). El backend no cambiará automáticamente a otra base de datos.", e);
+            throw new IllegalStateException("No se pudo conectar a la base seleccionada (" + nombre
+                    + "). Revisa app.db.active y las propiedades de conexión en application.properties. No hay cambio automático.", e);
         }
     }
 

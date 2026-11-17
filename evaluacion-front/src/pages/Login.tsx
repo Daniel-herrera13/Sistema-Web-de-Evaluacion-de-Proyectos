@@ -212,7 +212,11 @@ export default function App() {
             if (!resetEmail) return;
             setResetLoading(true);
             try {
-                await api.post('/auth/recuperar', { email: resetEmail.trim() });
+                const { data } = await api.post('/auth/recuperar', { email: resetEmail.trim() });
+                if (!data.permitido) {
+                    setResetError(data.mensaje ?? 'El correo no está registrado o la cuenta está inactiva.');
+                    return;
+                }
                 setModalStep(2);
             } catch (err) {
                 setResetError(mensajeDe(err, 'No se pudo enviar el código. Intenta de nuevo.'));
@@ -299,7 +303,7 @@ export default function App() {
                                     <GraduationCap className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h1 className="font-extrabold text-sm leading-tight">ITCA-FEPADE</h1>
+                                    <img src="/itca-fepade-logo.png" alt="ITCA-FEPADE" className="w-36 rounded bg-white p-1" />
                                     <span className="text-[10px] text-red-600 font-bold tracking-wider uppercase">Portal Web</span>
                                 </div>
                             </div>
@@ -505,11 +509,8 @@ export default function App() {
                         {/* Header / Institutional Branding */}
                         <div className="relative z-10 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl">
-                                    <GraduationCap className="w-7 h-7 text-white" />
-                                </div>
+                                <img src="/itca-fepade-logo.png" alt="ITCA-FEPADE" className="w-56 rounded-lg bg-white p-2 shadow-2xl" />
                                 <div>
-                                    <h1 className="font-black text-xl tracking-wider text-white">ITCA - FEPADE</h1>
                                     <p className="text-[11px] text-red-200/80 tracking-widest uppercase font-semibold">Escuela Especializada en Ingeniería</p>
                                 </div>
                             </div>
@@ -604,7 +605,7 @@ export default function App() {
 
                         {/* Desktop Footer */}
                         <div className="relative z-10 flex justify-between items-center text-xs text-red-200/60 font-mono border-t border-white/10 pt-6">
-                            <span>© 2026 ITCA-FEPADE El Salvador</span>
+                            <span>© 2026 · El Salvador</span>
                             <span>Soporte Técnico Especializado</span>
                         </div>
 
@@ -821,8 +822,8 @@ export default function App() {
                         </h3>
                         <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                             {modalStep === 1
-                                ? 'Ingresa tu correo institucional registrado. Te enviaremos un código de seguridad de 6 dígitos.'
-                                : `Ingresa el código enviado a ${resetEmail || 'tu correo registrado'}.`}
+                                ? 'Ingresa tu correo institucional. Si la cuenta está habilitada para recuperación, recibirás un código de seguridad de 6 dígitos.'
+                                : `Si ${resetEmail || 'tu correo'} está habilitado, recibirás un código. Cuando llegue, ingrésalo aquí.`}
                         </p>
 
                         {isResetSuccess ? (

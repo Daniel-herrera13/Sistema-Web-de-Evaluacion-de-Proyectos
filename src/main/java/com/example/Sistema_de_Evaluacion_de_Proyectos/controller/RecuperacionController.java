@@ -15,9 +15,12 @@ public class RecuperacionController {
     private final RecuperacionService service;
 
     @PostMapping("/recuperar")
-    public Map<String, String> recuperar(@Valid @RequestBody RecuperacionDto.Solicitar r) {
-        service.solicitar(r.email());
-        return Map.of("mensaje", "Si la dirección puede recibir códigos de recuperación, recibirás uno.");
+    public Map<String, Object> recuperar(@Valid @RequestBody RecuperacionDto.Solicitar r) {
+        boolean permitido = service.solicitar(r.email());
+        String mensaje = permitido
+                ? "El correo está habilitado. Ingresa el código que recibirás."
+                : "No encontramos una cuenta activa con ese correo.";
+        return Map.of("permitido", permitido, "mensaje", mensaje);
     }
 
     @PostMapping("/restablecer")

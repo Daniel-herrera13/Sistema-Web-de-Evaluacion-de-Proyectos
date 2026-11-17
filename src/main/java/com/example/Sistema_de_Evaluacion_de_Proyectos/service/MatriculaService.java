@@ -79,10 +79,12 @@ public class MatriculaService {
     public void desmatricular(Long matriculaId) {
         Matricula m = matriculas.findById(matriculaId)
                 .orElseThrow(() -> Http.noEncontrado("Matrícula no encontrada"));
-        boolean enGrupo = miembros.findByAlumnoId(m.getAlumno().getId()).stream()
-                .anyMatch(g -> Objects.equals(g.getAsignacion().getSubseccion().getId(), m.getSubseccion().getId()));
-        if (enGrupo)
-            throw Http.conflicto("El alumno pertenece a un grupo de esta subsección; quítelo del grupo primero");
+        // La baja de matrícula también libera al alumno de los grupos de esa
+        // subsección, para que el administrador no tenga que hacer dos operaciones.
+        var gruposDeLaSubseccion = miembros.findByAlumnoId(m.getAlumno().getId()).stream()
+                .filter(g -> Objects.equals(g.getAsignacion().getSubseccion().getId(), m.getSubseccion().getId()))
+                .toList();
+        miembros.deleteAll(gruposDeLaSubseccion);
         matriculas.delete(m);
     }
 

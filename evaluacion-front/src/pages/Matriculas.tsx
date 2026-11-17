@@ -6,8 +6,10 @@ import api from '../api/axios'
 import type { AlumnoBasico, Matricula, Seccion, Subseccion } from '../types/matricula'
 import { mensajeError } from '../utils/errores'
 import Shell from '../components/Shell'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function Matriculas() {
+    const { language } = useLanguage()
     const [secciones, setSecciones] = useState<Seccion[]>([])
     const [subsecciones, setSubsecciones] = useState<Subseccion[]>([])
     const [seccionId, setSeccionId] = useState('')
@@ -87,7 +89,7 @@ export default function Matriculas() {
     }
 
     async function quitar(m: Matricula) {
-        if (!window.confirm(`¿Quitar la matrícula de ${m.nombre} ${m.apellido}?`)) return
+        if (!window.confirm(language === 'en' ? `Remove enrollment for ${m.nombre} ${m.apellido}?` : `¿Quitar la matrícula de ${m.nombre} ${m.apellido}?`)) return
         setError('')
         setOk('')
         try {

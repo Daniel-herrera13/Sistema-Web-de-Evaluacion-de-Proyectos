@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { BookOpen, Building2, ClipboardCheck, Copy, Edit3, FileText, GraduationCap, Layers, Plus, Save, Trash2, Users, X } from 'lucide-react'
+import { BookOpen, Building2, ClipboardCheck, Copy, Edit3, Eye, EyeOff, FileText, GraduationCap, Layers, Plus, Save, Trash2, Users, X } from 'lucide-react'
 import api from '../api/axios'
 import Shell from '../components/Shell'
 import AlumnosDisponibles from '../components/AlumnosDisponibles'
 import { useAuth, type Rol } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import type { Icono } from '../config/menu'
 import { mensajeError } from '../utils/errores'
 import './Gestion.css'
@@ -80,11 +81,16 @@ export default function Gestion() {
 
 function Modulo({ active }: { active: Module }) {
     const { usuario } = useAuth()
+    const { language } = useLanguage()
     const meta = modules[active]
     const Icon = meta.icon
     const [rows, setRows] = useState<Row[]>([])
     const [lookups, setLookups] = useState<Record<string, Row[]>>({})
+    const [ciclosActivos, setCiclosActivos] = useState<Row[]>([])
+    const [conjuntoParaDuplicar, setConjuntoParaDuplicar] = useState<{ nivel: string; nivelId: number; ciclo: string } | null>(null)
+    const [cicloDestino, setCicloDestino] = useState('')
     const [form, setForm] = useState<Row>(emptyForms[active])
+    const [mostrarPasswordUsuario, setMostrarPasswordUsuario] = useState(false)
     const [editing, setEditing] = useState<number | null>(null)
     const [notice, setNotice] = useState('')
     const [error, setError] = useState('')
@@ -139,6 +145,10 @@ function Modulo({ active }: { active: Module }) {
             pedidos.materias = () => get('/materias'); pedidos.asignaciones = () => get('/asignaciones')
             pedidos.grupos = () => get('/grupos'); pedidos.proyectos = () => get('/proyectos')
         }
+        if (active === 'secciones' || active === 'criterios') {
+            try { setCiclosActivos(listData((await api.get('/ciclos', { params: { activos: true } })).data)) }
+            catch { setCiclosActivos([]) }
+        }
         const claves = Object.keys(pedidos)
         if (claves.length === 0) return
         const resultados = await Promise.allSettled(claves.map((k) => pedidos[k]()))
@@ -185,7 +195,7 @@ function Modulo({ active }: { active: Module }) {
         ],
         secciones: [
             { key: 'nombre', label: 'Sección (ej. SOFT41)', required: true },
-            { key: 'ciclo', label: 'Ciclo (ej. 02-2026)', required: true },
+            { key: 'ciclo', label: 'Ciclo', required: true, options: opciones(ciclosActivos, (x) => x.codigo) },
         ],
         grupos: [
             { key: 'nombre', label: 'Nombre', required: true },
@@ -210,7 +220,7 @@ function Modulo({ active }: { active: Module }) {
             { key: 'ponderacion', label: 'Ponderación (%)', type: 'number', step: '0.01', required: true },
             { key: 'nivel', label: 'Se aplica a', required: true, disabled: editing !== null, options: Object.entries(etiquetaNivel) },
             { key: 'nivelId', label: 'Cuál', required: true, disabled: editing !== null || !form.nivel, options: nivelOpciones[String(form.nivel)] ?? [] },
-            { key: 'ciclo', label: 'Ciclo (opcional; vacío = conjunto general)', disabled: editing !== null, pattern: '\\d{2}-\\d{4}', placeholder: 'Ej. 02-2026' },
+            { key: 'ciclo', label: 'Ciclo (opcional)', disabled: editing !== null, options: opciones(ciclosActivos, (x) => x.codigo) },
         ],
     }
     const campos = camposPor[active]
@@ -269,16 +279,17 @@ function Modulo({ active }: { active: Module }) {
     }
 
     const remove = async (id: number) => {
-        if (!window.confirm('¿Deseas eliminar este registro?')) return
+        if (!window.confirm(language === 'en' ? 'Delete this record?' : '¿Deseas eliminar este registro?')) return
         setError(''); setNotice('')
         try { await api.delete(`/${active}/${id}`); setNotice('Registro eliminado.'); await load() }
         catch (e) { setError(mensajeError(e, 'No se pudo eliminar el registro.')) }
     }
 
     // ---------- criterios: copiar un conjunto a otro ciclo ----------
-    const duplicarConjunto = async (t: { nivel: string; nivelId: number; ciclo: string }) => {
-        const destino = window.prompt('Ciclo de destino (formato NN-AAAA, por ejemplo 01-2027):')?.trim()
-        if (!destino) return
+    const duplicarConjunto = async () => {
+        const t = conjuntoParaDuplicar
+        const destino = cicloDestino
+        if (!t || !destino) return
         setError(''); setNotice('')
         try {
             await api.post('/criterios/duplicar', {
@@ -287,6 +298,7 @@ function Modulo({ active }: { active: Module }) {
                 cicloDestino: destino,
             })
             setNotice(`Conjunto duplicado al ciclo ${destino}. Ya puedes editarlo ahí.`)
+            setConjuntoParaDuplicar(null); setCicloDestino('')
             await load()
         } catch (e) { setError(mensajeError(e, 'No se pudo duplicar el conjunto.')) }
     }
@@ -341,7 +353,7 @@ function Modulo({ active }: { active: Module }) {
         } catch (e) { setError(mensajeError(e, 'No se pudo crear la subsección.')) }
     }
     const quitarSubseccion = async (s: Row) => {
-        if (!seccionSel || !window.confirm(`¿Eliminar la subsección ${s.nombre}?`)) return
+        if (!seccionSel || !window.confirm(language === 'en' ? `Delete subsection ${s.nombre}?` : `¿Eliminar la subsección ${s.nombre}?`)) return
         setError(''); setNotice('')
         try {
             await api.delete(`/subsecciones/${s.id}`)
@@ -365,7 +377,7 @@ function Modulo({ active }: { active: Module }) {
         } catch (e) { setError(mensajeError(e, 'No se pudo asignar la materia.')) }
     }
     const quitarAsignacion = async (a: Row) => {
-        if (!seccionSel || !window.confirm(`¿Quitar ${a.materiaNombre} de ${a.subseccion}?`)) return
+        if (!seccionSel || !window.confirm(language === 'en' ? `Remove ${a.materiaNombre} from ${a.subseccion}?` : `¿Quitar ${a.materiaNombre} de ${a.subseccion}?`)) return
         setError(''); setNotice('')
         try {
             await api.delete(`/asignaciones/${a.id}`)
@@ -483,9 +495,29 @@ function Modulo({ active }: { active: Module }) {
                                 <span>{c.label}</span>
                                 {c.options ? (
                                     <select required={c.required} disabled={c.disabled} value={form[c.key] ?? ''} onChange={(e) => setField(c.key, e.target.value)}>
-                                        <option value="">Selecciona una opción</option>
+                                        <option value="">{active === 'criterios' && c.key === 'ciclo' ? 'General (sin ciclo)' : 'Selecciona una opción'}</option>
                                         {c.options.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
                                     </select>
+                                ) : c.key === 'password' && active === 'usuarios' ? (
+                                    <div className="user-password-field">
+                                        <input
+                                            required={c.required}
+                                            type={mostrarPasswordUsuario ? 'text' : 'password'}
+                                            autoComplete={editing ? 'new-password' : 'new-password'}
+                                            value={form[c.key] ?? ''}
+                                            placeholder={editing ? 'Deja vacío para conservarla' : undefined}
+                                            onChange={(e) => cambiarCampo(c.key, e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="user-password-toggle"
+                                            onClick={() => setMostrarPasswordUsuario((mostrar) => !mostrar)}
+                                            aria-label={mostrarPasswordUsuario ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                            title={mostrarPasswordUsuario ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                        >
+                                            {mostrarPasswordUsuario ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 ) : (
                                     <input
                                         required={c.required}
@@ -550,7 +582,7 @@ function Modulo({ active }: { active: Module }) {
                                     {t.suma === 100 ? '— completo' : t.suma > 100 ? '— excede el 100%' : `— faltan ${(100 - t.suma).toFixed(2)}%`}
                                     {usos[t.key] && <span className="tag tag-warn" style={{ marginLeft: 8 }}>En uso</span>}
                                     {t.suma === 100 && (
-                                        <button type="button" className="preset-btn" style={{ marginLeft: 8 }} title="Copiar este conjunto a otro ciclo" onClick={() => void duplicarConjunto(t)}>
+                                        <button type="button" className="preset-btn" style={{ marginLeft: 8 }} title="Copiar este conjunto a otro ciclo" onClick={() => { setConjuntoParaDuplicar(t); setCicloDestino('') }}>
                                             <Copy size={13} /> Duplicar a otro ciclo
                                         </button>
                                     )}
@@ -567,6 +599,19 @@ function Modulo({ active }: { active: Module }) {
                             <button type="button" className={`scope-badge scope-proyecto ${nivelFiltro === 'PROYECTO' ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === 'PROYECTO'} onClick={() => setNivelFiltro(nivelFiltro === 'PROYECTO' ? null : 'PROYECTO')}>Proyecto</button>
                             <button type="button" className={`scope-all ${nivelFiltro === null ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === null} onClick={() => setNivelFiltro(null)}>Todos</button>
                             <small>Selecciona un color para filtrar por alcance. La lista va de lo general a lo específico.</small>
+                        </div>
+                    )}
+
+                    {active === 'criterios' && conjuntoParaDuplicar && (
+                        <div className="panel" role="group" aria-label="Duplicar criterios">
+                            <h3>Duplicar criterios a otro ciclo</h3>
+                            <label className="gestion-field"><span>Ciclo destino</span>
+                                <select value={cicloDestino} onChange={(e) => setCicloDestino(e.target.value)}>
+                                    <option value="">Selecciona un ciclo activo</option>
+                                    {ciclosActivos.filter((c) => c.codigo !== conjuntoParaDuplicar.ciclo).map((c) => <option key={c.id} value={c.codigo}>{c.codigo}</option>)}
+                                </select>
+                            </label>
+                            <div className="form-actions"><button type="button" className="primary-button" disabled={!cicloDestino} onClick={() => void duplicarConjunto()}><Copy size={15} /> Duplicar</button><button type="button" className="secondary-button" onClick={() => setConjuntoParaDuplicar(null)}>Cancelar</button></div>
                         </div>
                     )}
 
@@ -610,7 +655,7 @@ function Modulo({ active }: { active: Module }) {
                             {members.length === 0 && <p className="nota-info">Aún no hay alumnos en este grupo.</p>}
                             {members.map((m) => <div className="member-row" key={m.id}>{m.nombre} {m.apellido}<button onClick={() => void removeMember(m.id)}><X size={15} /></button></div>)}
                         </div>
-                        <AlumnosDisponibles grupoId={grupoSel.id} onAgregado={() => void cargarIntegrantes(grupoSel)} />
+                        <AlumnosDisponibles grupoId={grupoSel.id} onAgregado={() => { void cargarIntegrantes(grupoSel); void load() }} />
                     </div>
                 </section>
             )}

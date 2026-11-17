@@ -5,6 +5,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Errores;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Seccion;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.SeccionRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.SubseccionRepository;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.CicloAcademicoRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +17,12 @@ public class SeccionService {
 
     private final SeccionRepository secciones;
     private final SubseccionRepository subsecciones;
+    private final CicloAcademicoRepository ciclos;
 
-    public SeccionService(SeccionRepository secciones, SubseccionRepository subsecciones) {
+    public SeccionService(SeccionRepository secciones, SubseccionRepository subsecciones, CicloAcademicoRepository ciclos) {
         this.secciones = secciones;
         this.subsecciones = subsecciones;
+        this.ciclos = ciclos;
     }
 
     @Transactional(readOnly = true)
@@ -39,6 +42,7 @@ public class SeccionService {
     public SeccionDto.Respuesta crear(SeccionDto.Guardar r) {
         String nombre = r.nombre().trim();
         String ciclo = r.ciclo().trim();
+        validarCicloActivo(ciclo);
         if (secciones.existsByNombreIgnoreCaseAndCicloIgnoreCase(nombre, ciclo)) {
             throw Errores.conflicto("Ya existe la sección \"" + nombre + "\" en el ciclo " + ciclo);
         }
@@ -53,6 +57,7 @@ public class SeccionService {
         Seccion s = buscar(id);
         String nombre = r.nombre().trim();
         String ciclo = r.ciclo().trim();
+        validarCicloActivo(ciclo);
         if (secciones.existsByNombreIgnoreCaseAndCicloIgnoreCaseAndIdNot(nombre, ciclo, id)) {
             throw Errores.conflicto("Ya existe otra sección \"" + nombre + "\" en el ciclo " + ciclo);
         }
@@ -78,5 +83,11 @@ public class SeccionService {
     private Seccion buscar(Long id) {
         return secciones.findById(id)
                 .orElseThrow(() -> Errores.noEncontrado("Sección no encontrada"));
+    }
+
+    private void validarCicloActivo(String codigo) {
+        if (ciclos.findByCodigoIgnoreCase(codigo).filter(c -> c.isActivo()).isEmpty()) {
+            throw Errores.invalido("Selecciona un ciclo académico activo");
+        }
     }
 }

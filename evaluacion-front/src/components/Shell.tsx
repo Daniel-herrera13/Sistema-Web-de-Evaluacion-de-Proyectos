@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { GraduationCap, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, Globe } from 'lucide-react'
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, Globe } from 'lucide-react'
 import { useAuth, type Rol } from '../context/AuthContext'
 import { menuPorRol, nombreRol } from '../config/menu'
 import ThemeToggle from './ThemeToggle'
@@ -70,7 +70,7 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
             >
                 <div className="sidebar-top">
                     <div className="brand">
-                        <div className="brand-mark"><GraduationCap size={24} /></div>
+                        <img className="brand-wordmark" src="/itca-fepade-logo.png" alt="ITCA-FEPADE" />
                         <div className="brand-text"><strong>Sistema Web de<br />Evaluación</strong><span>Regional Santa Ana · Ciclo 02–2026</span></div>
                     </div>
                     <button className="close-menu" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={20} /></button>
@@ -99,7 +99,7 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
                     <button className="logout-button" onClick={() => { logout(); navigate('/login') }}>
                         <LogOut size={18} /><span>{text('Cerrar sesión')}</span>
                     </button>
-                    <strong>ITCA-FEPADE</strong>
+                    <span className="institution-footer">Regional Santa Ana</span>
                 </div>
             </aside>
 

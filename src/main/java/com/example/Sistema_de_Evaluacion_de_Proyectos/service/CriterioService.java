@@ -13,6 +13,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.CriterioReposit
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.GrupoRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.MateriaRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.ProyectoRepository;
+import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.CicloAcademicoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class CriterioService {
     private final GrupoRepository grupos;
     private final ProyectoRepository proyectos;
     private final AccesoService acceso;
+    private final CicloAcademicoRepository ciclos;
 
     /** Para desactivar el bloqueo durante el desarrollo: app.criterios.bloquear-en-uso=false */
     @Value("${app.criterios.bloquear-en-uso:true}")
@@ -87,6 +89,7 @@ public class CriterioService {
         Ambito a = ambito(r.materiaId(), r.asignacionId(), r.grupoId(), r.proyectoId());
         exigirGestion(u, a);
         String ciclo = ciclo(r.ciclo());
+        validarCicloActivo(ciclo);
 
         List<Criterio> conjunto = delConjunto(a, ciclo);
         exigirEditable(conjunto, u);
@@ -161,6 +164,7 @@ public class CriterioService {
         Ambito a = ambito(r.materiaId(), r.asignacionId(), r.grupoId(), r.proyectoId());
         exigirGestion(u, a);
         String ciclo = ciclo(r.ciclo());
+        validarCicloActivo(ciclo);
 
         BigDecimal total = r.criterios().stream().map(CriterioDto.Item::ponderacion)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -186,6 +190,7 @@ public class CriterioService {
         exigirGestion(u, a);
         String origen = ciclo(r.cicloOrigen());
         String destino = ciclo(r.cicloDestino());
+        validarCicloActivo(destino);
         if (destino == null) throw Http.invalido("Indica el ciclo de destino (formato NN-AAAA)");
         if (Objects.equals(origen, destino))
             throw Http.invalido("El ciclo de destino debe ser distinto al de origen");
@@ -324,6 +329,11 @@ public class CriterioService {
         if (!CICLO.matcher(c).matches())
             throw Http.invalido("El ciclo debe tener el formato NN-AAAA (por ejemplo 02-2026)");
         return c;
+    }
+
+    private void validarCicloActivo(String codigo) {
+        if (codigo != null && ciclos.findByCodigoIgnoreCase(codigo).filter(c -> c.isActivo()).isEmpty())
+            throw Http.invalido("Selecciona un ciclo académico activo");
     }
 
     private String cicloDe(Asignacion a) {

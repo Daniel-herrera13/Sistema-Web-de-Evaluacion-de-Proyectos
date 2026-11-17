@@ -14,8 +14,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,22 +31,21 @@ public class RecuperacionService {
     private final CorreoService correo;
     private final SecureRandom azar = new SecureRandom();
 
-    @Value("${app.recovery.allowed-emails:}")
+    @Value("${app.recuperacion.correos-permitidos:}")
     private String correosPermitidos;
 
     /** Siempre termina igual exista o no el correo, para no revelar qué cuentas existen. */
     @Transactional
-    public void solicitar(String email) {
+    public boolean solicitar(String email) {
         String correoNormalizado = normalizar(email);
-        if (!estaPermitido(correoNormalizado)) return;
-
+        if (!listaPermitida().contains(correoNormalizado)) return false;
         Usuario u = usuarios.findByCorreoIgnoreCase(correoNormalizado)
                 .filter(Usuario::isActivo).orElse(null);
-        if (u == null) return;
+        if (u == null) return false;
 
         var previo = codigos.findFirstByUsuarioIdAndUsadoFalseOrderByIdDesc(u.getId());
         if (previo.isPresent() && previo.get().getCreadoEn()
-                .isAfter(LocalDateTime.now().minusSeconds(SEGUNDOS_ENTRE_ENVIOS))) return;
+                .isAfter(LocalDateTime.now().minusSeconds(SEGUNDOS_ENTRE_ENVIOS))) return true;
 
         codigos.deleteByUsuarioId(u.getId());
         String codigo = String.format("%06d", azar.nextInt(1_000_000));
@@ -57,14 +57,13 @@ public class RecuperacionService {
         codigos.save(c);
 
         correo.enviarCodigo(u.getCorreo(), u.getNombre(), codigo);
+        return true;
     }
 
     // noRollbackFor: si el código es incorrecto, el contador de intentos debe guardarse igual
     @Transactional(noRollbackFor = ResponseStatusException.class)
     public void restablecer(String email, String codigo, String nuevaPassword) {
         String correoNormalizado = normalizar(email);
-        if (!estaPermitido(correoNormalizado)) throw codigoInvalido();
-
         Usuario u = usuarios.findByCorreoIgnoreCase(correoNormalizado)
                 .filter(Usuario::isActivo)
                 .orElseThrow(RecuperacionService::codigoInvalido);
@@ -87,14 +86,14 @@ public class RecuperacionService {
         return Http.invalido("Código incorrecto o vencido");
     }
 
-    private boolean estaPermitido(String email) {
-        return Arrays.stream(correosPermitidos.split(","))
-                .map(String::trim)
-                .map(correo -> correo.toLowerCase(Locale.ROOT))
-                .anyMatch(email::equals);
-    }
-
     private String normalizar(String email) {
         return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Set<String> listaPermitida() {
+        return java.util.Arrays.stream(correosPermitidos.split(","))
+                .map(this::normalizar)
+                .filter(c -> !c.isBlank())
+                .collect(Collectors.toSet());
     }
 }
