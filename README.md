@@ -287,29 +287,27 @@ La estructura completa del backend también contiene los paquetes `service`, `co
 
 ### 1. Base de datos
 
-```sql
-CREATE DATABASE IF NOT EXISTS evaluacion_proyectos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+MySQL/MariaDB es el motor principal. PostgreSQL está disponible como alternativa secundaria. La selección es manual: configura `DB_TYPE` en la ejecución del backend. El backend no cambia de motor si la base seleccionada está detenida; en ese caso el arranque falla.
+
+Para MySQL/MariaDB, inicia el servicio predeterminado:
+
+```powershell
+docker compose up -d db
 ```
 
-Después ejecuta el script `database/schema.sql`.
+Para PostgreSQL, inicia el servicio opcional:
+
+```powershell
+docker compose --profile postgres up -d postgres
+```
+
+Los dos motores mantienen bases y volúmenes independientes. Cambiar `DB_TYPE` no copia ni sincroniza datos entre ellos.
 
 ### 2. Backend
 
-Edita `src/main/resources/application.properties` con tus datos:
+En IntelliJ, abre **Run → Edit Configurations…**, selecciona la configuración del backend y define `DB_TYPE` en **Environment variables**. Usa `DB_TYPE=mysql` para la base principal o `DB_TYPE=postgres` para la secundaria. Los usuarios, contraseñas y URL locales tienen valores de desarrollo definidos en `application.properties`; se pueden sustituir mediante `MYSQL_URL`, `MYSQL_USER`, `MYSQL_PASSWORD`, `POSTGRES_URL`, `POSTGRES_USER` y `POSTGRES_PASSWORD`.
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/evaluacion_proyectos?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-spring.datasource.username=root
-spring.datasource.password=TU_PASSWORD
-
-spring.jpa.hibernate.ddl-auto=none
-
-# Clave en Base64 de al menos 32 bytes
-app.jwt.secret=TU_CLAVE_BASE64
-app.jwt.expiration-ms=86400000
-
-app.cors.origin=http://localhost:5173
-```
+Después de cambiar el valor, detén y vuelve a iniciar el backend. Comprueba en la consola el mensaje `Motor de base de datos seleccionado manualmente` y el motor al que se conectó.
 
 Para generar la clave JWT en PowerShell:
 
@@ -319,18 +317,19 @@ $bytes = New-Object byte[] 32
 [Convert]::ToBase64String($bytes)
 ```
 
-Para enviar los códigos de recuperación por el correo institucional, configura SMTP antes de iniciar el backend. Para cuentas de Outlook/Microsoft 365 usa `smtp.office365.com`, puerto `587` y STARTTLS:
+Para enviar los códigos de recuperación por Gmail, configura SMTP antes de iniciar el backend. Gmail usa `smtp.gmail.com`, puerto `587` y STARTTLS:
 
 ```powershell
-$env:MAIL_HOST = "smtp.office365.com"
+$env:MAIL_ENABLED = "true"
+$env:MAIL_HOST = "smtp.gmail.com"
 $env:MAIL_PORT = "587"
-$env:MAIL_USERNAME = "tu_correo@itca.edu.sv"
-$env:MAIL_PASSWORD = "tu contraseña o contraseña de aplicación"
+$env:MAIL_USERNAME = "tu_correo@gmail.com"
+$env:MAIL_PASSWORD = "tu contraseña de aplicación"
 $env:MAIL_FROM = $env:MAIL_USERNAME
 .\mvnw.cmd spring-boot:run
 ```
 
-`app.mail.enabled=true` ya está habilitado en `application.properties`. La cuenta institucional debe tener habilitado **SMTP AUTH**; si la institución usa autenticación multifactor, necesitarás una contraseña de aplicación si Microsoft 365 la permite. Las variables anteriores solo duran en esa ventana de PowerShell; configúralas nuevamente si abres otra.
+Las variables SMTP también se pueden agregar en **Environment variables** de la configuración de IntelliJ. No compartas ni subas esa configuración con credenciales.
 
 Ejecuta el backend:
 
@@ -377,20 +376,19 @@ Queda disponible en `http://localhost:5173`.
 
 ### Base de datos con Docker
 
-Para levantar la base de datos de desarrollo:
+Para levantar la base principal MySQL/MariaDB:
 
 ```powershell
 docker compose up -d db
 ```
 
-El servicio utiliza MariaDB 10.11, publica el puerto `3307` y carga `database/schema.sql` al crear el volumen por primera vez. Para reinicializar una base local:
+El servicio utiliza MariaDB 10.11 y publica el puerto `3307`. Para levantar PostgreSQL 16 en el puerto `5432`, usa el perfil opcional:
 
 ```powershell
-docker compose down -v
-docker compose up -d db
+docker compose --profile postgres up -d postgres
 ```
 
-> `docker compose down -v` elimina los datos del volumen; debe utilizarse únicamente en desarrollo.
+Configura `DB_TYPE` en IntelliJ para elegir a cuál motor conectará el backend y reinícialo después de cada cambio. Puedes detener el contenedor anterior desde Docker Desktop. Hibernate crea o actualiza las tablas de cada motor al iniciar; los datos de ambos contenedores se conservan en volúmenes separados.
 
 ### Comandos de validación
 

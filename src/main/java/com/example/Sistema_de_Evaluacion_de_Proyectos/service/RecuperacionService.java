@@ -6,6 +6,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.model.Usuario;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.CodigoRecuperacionRepository;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +30,16 @@ public class RecuperacionService {
     private final CorreoService correo;
     private final SecureRandom azar = new SecureRandom();
 
+    @Value("${app.recovery.allowed-emails:}")
+    private String correosPermitidos;
+
     /** Siempre termina igual exista o no el correo, para no revelar qué cuentas existen. */
     @Transactional
     public void solicitar(String email) {
-        Usuario u = usuarios.findByCorreo(email.trim().toLowerCase())
+        String correoNormalizado = normalizar(email);
+        if (!estaPermitido(correoNormalizado)) return;
+
+        Usuario u = usuarios.findByCorreoIgnoreCase(correoNormalizado)
                 .filter(Usuario::isActivo).orElse(null);
         if (u == null) return;
 
@@ -53,7 +62,10 @@ public class RecuperacionService {
     // noRollbackFor: si el código es incorrecto, el contador de intentos debe guardarse igual
     @Transactional(noRollbackFor = ResponseStatusException.class)
     public void restablecer(String email, String codigo, String nuevaPassword) {
-        Usuario u = usuarios.findByCorreo(email.trim().toLowerCase())
+        String correoNormalizado = normalizar(email);
+        if (!estaPermitido(correoNormalizado)) throw codigoInvalido();
+
+        Usuario u = usuarios.findByCorreoIgnoreCase(correoNormalizado)
                 .filter(Usuario::isActivo)
                 .orElseThrow(RecuperacionService::codigoInvalido);
         CodigoRecuperacion c = codigos.findFirstByUsuarioIdAndUsadoFalseOrderByIdDesc(u.getId())
@@ -73,5 +85,16 @@ public class RecuperacionService {
 
     private static ResponseStatusException codigoInvalido() {
         return Http.invalido("Código incorrecto o vencido");
+    }
+
+    private boolean estaPermitido(String email) {
+        return Arrays.stream(correosPermitidos.split(","))
+                .map(String::trim)
+                .map(correo -> correo.toLowerCase(Locale.ROOT))
+                .anyMatch(email::equals);
+    }
+
+    private String normalizar(String email) {
+        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
     }
 }

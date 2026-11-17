@@ -10,6 +10,7 @@ import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.util.Locale;
 
 @Configuration
 public class DataSourceConfig {
@@ -18,11 +19,29 @@ public class DataSourceConfig {
 
     @Bean
     public DataSource dataSource(Environment env) {
+        String motor = env.getProperty("app.db.active", "mysql");
+        motor = motor == null || motor.isBlank() ? "mysql" : motor.trim().toLowerCase(Locale.ROOT);
+        String prefijo;
+        String nombre;
+        switch (motor) {
+            case "mysql", "mariadb" -> {
+                prefijo = "app.db.mysql";
+                nombre = "MySQL/MariaDB";
+            }
+            case "postgres", "postgresql" -> {
+                prefijo = "app.db.postgres";
+                nombre = "PostgreSQL";
+            }
+            default -> throw new IllegalStateException(
+                    "Motor de base de datos inválido: " + motor + ". Usa DB_TYPE=mysql o DB_TYPE=postgres.");
+        }
+
+        log.info("Motor de base de datos seleccionado manualmente: {}", nombre);
         try {
-            return crear(env, "app.db.primary", "MySQL");
+            return crear(env, prefijo, nombre);
         } catch (Exception e) {
-            log.warn("MySQL no disponible ({}). Usando PostgreSQL.", e.getMessage());
-            return crear(env, "app.db.fallback", "PostgreSQL");
+            throw new IllegalStateException("No se pudo conectar al motor seleccionado (" + nombre
+                    + "). El backend no cambiará automáticamente a otra base de datos.", e);
         }
     }
 

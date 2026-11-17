@@ -17,7 +17,7 @@ public class RecuperacionController {
     @PostMapping("/recuperar")
     public Map<String, String> recuperar(@Valid @RequestBody RecuperacionDto.Solicitar r) {
         service.solicitar(r.email());
-        return Map.of("mensaje", "Si el correo está registrado, recibirás un código de verificación.");
+        return Map.of("mensaje", "Si la dirección puede recibir códigos de recuperación, recibirás uno.");
     }
 
     @PostMapping("/restablecer")

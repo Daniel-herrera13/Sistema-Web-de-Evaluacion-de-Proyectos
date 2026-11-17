@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByCorreo(String correo);
+    Optional<Usuario> findByCorreoIgnoreCase(String correo);
     boolean existsByCorreoIgnoreCase(String correo);
     boolean existsByCorreoIgnoreCaseAndIdNot(String correo, Long id);
     List<Usuario> findByRolNombre(String nombre);

@@ -35,6 +35,8 @@ public class CorreoService {
         if (sender == null) {
             if (habilitado) {
                 log.error("SMTP está habilitado, pero JavaMailSender no está disponible. No se pudo enviar a {}", para);
+            } else {
+                log.warn("SMTP deshabilitado: no se envió el código por correo a {}", para);
             }
             return;
         }
@@ -49,6 +51,7 @@ public class CorreoService {
                 m.setSubject("Código para restablecer tu contraseña");
                 m.setText(texto);
                 sender.send(m);
+                log.info("[RECUPERACION] Correo enviado a {}", para);
             } catch (Exception e) {
                 log.error("No se pudo enviar el correo a {}: {}", para, e.getMessage());
             }

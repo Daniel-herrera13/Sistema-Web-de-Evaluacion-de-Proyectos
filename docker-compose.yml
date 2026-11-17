@@ -13,12 +13,31 @@ services:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 10
 
+  postgres:
+    image: postgres:16
+    container_name: evaluacion-db-postgres
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evaluacion_proyectos
+      POSTGRES_USER: evaluacion
+      POSTGRES_PASSWORD: evaluacion123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evaluacion -d evaluacion_proyectos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   db_data:
+  postgres_data:
