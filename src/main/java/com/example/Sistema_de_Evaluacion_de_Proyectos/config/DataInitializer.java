@@ -78,6 +78,7 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.info("app.seed.demo=false: se omiten los datos de demostración.");
         }
+        corregirApellidoFernando();
     }
 
     // ================= DATOS BASE (los de siempre) =================
@@ -104,6 +105,15 @@ public class DataInitializer implements CommandLineRunner {
         u.setPassword(encoder.encode(pass));
         u.setRol(roles.findByNombre(rol).orElseThrow());
         usuarios.save(u);
+    }
+
+    private void corregirApellidoFernando() {
+        usuarios.findByCorreo("fernando.castaneda25@itca.edu.sv").ifPresent(f -> {
+            if ("Casta\u00f1eda".equals(f.getApellido())) {
+                f.setApellido("Castaneda");
+                usuarios.save(f);
+            }
+        });
     }
 
     // ================= DATOS DE DEMOSTRACIÓN =================
@@ -135,7 +145,7 @@ public class DataInitializer implements CommandLineRunner {
         u.put("andrea", usuario("Andrea", "Rosales", "andrea.rosales@itca.edu.sv", "Alumno123", "alumno", true));
         u.put("karla", usuario("Karla", "Navarro", "karla.navarro@itca.edu.sv", "Alumno123", "alumno", true));   // sin grupo
         u.put("oscar", usuario("Oscar", "Villalta", "oscar.villalta@itca.edu.sv", "Alumno123", "alumno", false)); // inactivo
-        u.put("fernando", usuario("Fernando", "Castañeda", "fernando.castaneda25@itca.edu.sv", "Admin123", "admin", true));
+        u.put("fernando", usuario("Fernando", "Castaneda", "fernando.castaneda25@itca.edu.sv", "Admin123", "admin", true));
         u.put("dennis", usuario("Dennis", "Serrano", "dennis.serrano25@itca.edu.sv", "Alumno123", "alumno", true));
         u.put("yesica", usuario("Yesica", "Anaya", "yesica.anaya25@itca.edu.sv", "Docente123", "docente", true));
         u.put("fatimaM", usuario("Fátima", "Miranda", "fatima.miranda25@itca.edu.sv", "Jurado123", "jurado", true));

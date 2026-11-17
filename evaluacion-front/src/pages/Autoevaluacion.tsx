@@ -17,6 +17,7 @@ export default function Autoevaluacion() {
     const [aviso, setAviso] = useState('')
 
     const elegir = (o: Row) => {
+        if (o.propio) return
         setObjetivoId(o.alumnoId)
         setNotas(Object.fromEntries((o.notas ?? []).map((n: Row) => [n.criterioId, String(n.nota)])))
     }
@@ -59,15 +60,16 @@ export default function Autoevaluacion() {
             })
             setForm(data)
             setAviso('Calificación guardada.')
-            const siguiente = ((data.objetivos ?? []) as Row[]).find((o) => !o.evaluado)
+            const siguiente = ((data.objetivos ?? []) as Row[]).find((o) => !o.propio && !o.evaluado)
             if (siguiente) elegir(siguiente)
         } catch (e) { setError(mensajeError(e, 'No se pudo guardar la calificación.')) }
     }
 
-    const objetivos: Row[] = form?.objetivos ?? []
+    const objetivos: Row[] = (form?.objetivos ?? []).filter((o: Row) => !o.propio)
     const hechos = objetivos.filter((o) => o.evaluado).length
-    const porcentaje = objetivos.length ? Math.round((hechos / objetivos.length) * 100) : 0
+    const porcentaje = objetivos.length ? Math.round((hechos / objetivos.length) * 100) : form?.completo ? 100 : 0
     const actual = objetivos.find((o) => o.alumnoId === objetivoId)
+    const proyectoActual = proyectos.find((p) => Number(p.id) === Number(proyectoId))
 
     return (
         <Shell eyebrow="MI GRUPO" title="Autoevaluación" description="Califica tu aporte y el de tus compañeros. Nadie verá quién puso cada nota.">
@@ -76,8 +78,8 @@ export default function Autoevaluacion() {
 
             {proyectos.length > 1 && (
                 <div className="chip-row">
-                    {proyectos.map((p) => (
-                        <button key={p.id} className={`preset-btn ${proyectoId === p.id ? 'sel' : ''}`} onClick={() => void abrir(p.id)}>{p.titulo}</button>
+                        {proyectos.map((p) => (
+                        <button key={p.id} className={`preset-btn ${proyectoId === p.id ? 'sel' : ''}`} onClick={() => void abrir(p.id)}>{p.titulo} · {p.materiaNombre ?? 'Materia no especificada'}</button>
                     ))}
                 </div>
             )}
@@ -89,7 +91,7 @@ export default function Autoevaluacion() {
             {form && (
                 <>
                     <section className="panel compacto" style={{ marginBottom: 24 }}>
-                        <div className="progress-line"><span>{form.proyecto}</span><strong>{hechos} de {objetivos.length} evaluados</strong></div>
+                        <div className="progress-line"><span>{form.proyecto} · {proyectoActual?.materiaNombre ?? 'Materia no especificada'}</span><strong>{objetivos.length ? `${hechos} de ${objetivos.length} compañeros evaluados` : 'No hay compañeros para evaluar'}</strong></div>
                         <div className="mod-progress"><i style={{ width: `${porcentaje}%` }} /></div>
                         <p className="anon-note"><ShieldCheck size={15} /> Tus calificaciones son anónimas. Solo ves lo que tú mismo registraste.</p>
                         {form.completo && <p className="sum-text ok" style={{ marginTop: 10 }}>Completaste la evaluación de todo tu grupo.</p>}
@@ -99,10 +101,11 @@ export default function Autoevaluacion() {
                         <section className="panel compacto">
                             <div className="panel-heading"><div><span className="panel-kicker">INTEGRANTES</span><h2>A quién evaluar</h2></div></div>
                             <div className="target-list">
+                                {objetivos.length === 0 && <p className="nota-info">No tienes compañeros para evaluar en este grupo. No puedes evaluarte a ti mismo.</p>}
                                 {objetivos.map((o) => (
                                     <button key={o.alumnoId} className={`target-item ${o.alumnoId === objetivoId ? 'chosen' : ''}`} onClick={() => elegir(o)}>
                                         {o.evaluado ? <CheckCircle2 size={18} className="ok-icon" /> : <Circle size={18} />}
-                                        <span><strong>{o.nombre}</strong>{o.propio && <small>Tú (autoevaluación)</small>}</span>
+                                        <span><strong>{o.nombre}</strong></span>
                                     </button>
                                 ))}
                             </div>
@@ -111,7 +114,7 @@ export default function Autoevaluacion() {
                         <section className="panel compacto">
                             {actual ? (
                                 <form onSubmit={guardar}>
-                                    <div className="panel-heading"><div><span className="panel-kicker">{actual.propio ? 'AUTOEVALUACIÓN' : 'COMPAÑERO'}</span><h2>{actual.nombre}</h2></div></div>
+                                    <div className="panel-heading"><div><span className="panel-kicker">COMPAÑERO</span><h2>{actual.nombre}</h2></div></div>
                                     {(form.criterios as Row[]).map((c) => (
                                         <label className="note-row" key={c.id}>
                                             <span>{c.nombre}<small>{c.ponderacion}%{c.descripcion ? ` · ${c.descripcion}` : ''}</small></span>
@@ -123,7 +126,7 @@ export default function Autoevaluacion() {
                                     </div>
                                 </form>
                             ) : (
-                                <div className="empty-state"><strong>Selecciona a un compañero</strong></div>
+                                <div className="empty-state"><strong>{objetivos.length ? 'Selecciona a un compañero' : 'No hay compañeros que evaluar'}</strong></div>
                             )}
                         </section>
                     </div>

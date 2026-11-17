@@ -1,9 +1,10 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { GraduationCap, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
+import { GraduationCap, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X, Globe } from 'lucide-react'
 import { useAuth, type Rol } from '../context/AuthContext'
 import { menuPorRol, nombreRol } from '../config/menu'
 import ThemeToggle from './ThemeToggle'
+import { useLanguage } from '../context/LanguageContext'
 import '../pages/Dashboard.css'
 import '../pages/Gestion.css'
 import '../pages/Modalidades.css'
@@ -30,6 +31,7 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
     const { usuario, logout } = useAuth()
     const navigate = useNavigate()
     const { pathname } = useLocation()
+    const { language, toggleLanguage, text } = useLanguage()
     const [abierto, setAbierto] = useState(false)
     const [colapsada, setColapsada] = useState(leerColapsada)
     const sidebarRef = useRef<HTMLElement>(null)
@@ -59,7 +61,7 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
 
     return (
         <div className={`app-shell ${colapsada ? 'sidebar-collapsed' : ''}`}>
-            <button className="mobile-menu" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={22} /></button>
+            <button className="mobile-menu" onClick={() => setAbierto(true)} aria-label={language === 'es' ? 'Abrir menú' : 'Open menu'}><Menu size={22} /></button>
 
             <aside
                 ref={sidebarRef}
@@ -75,7 +77,7 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
                     <nav>
                         {grupos.map((grupo) => (
                             <div className="nav-group" key={grupo.titulo}>
-                                <p className="nav-heading">{grupo.titulo}</p>
+                            <p className="nav-heading">{text(grupo.titulo)}</p>
                                 {grupo.items.map((item) => {
                                     const Icono = item.icon
                                     return (
@@ -83,9 +85,9 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
                                             key={item.to}
                                             className={`nav-item ${pathname === item.to ? 'active' : ''}`}
                                             onClick={() => ir(item.to)}
-                                            title={item.label}
+                                            title={text(item.label)}
                                         >
-                                            <Icono size={18} /><span>{item.label}</span>
+                                            <Icono size={18} /><span>{text(item.label)}</span>
                                         </button>
                                     )
                                 })}
@@ -95,7 +97,7 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
                 </div>
                 <div className="sidebar-bottom">
                     <button className="logout-button" onClick={() => { logout(); navigate('/login') }}>
-                        <LogOut size={18} /><span>Cerrar sesión</span>
+                        <LogOut size={18} /><span>{text('Cerrar sesión')}</span>
                     </button>
                     <strong>ITCA-FEPADE</strong>
                 </div>
@@ -108,13 +110,14 @@ export default function Shell({ eyebrow, title, description, badge, children }: 
                     </button>
                     <div className="topbar-title">{title}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <button type="button" className="theme-toggle" onClick={toggleLanguage} aria-label={language === 'es' ? 'Switch to English' : 'Cambiar a español'} title={language === 'es' ? 'Switch to English' : 'Cambiar a español'}><Globe size={18} /><span style={{ fontSize: 11, fontWeight: 700 }}>{language.toUpperCase()}</span></button>
                         <ThemeToggle />
-                        <div className="user-chip"><span className="avatar">{iniciales}</span><span>{nombreRol(rol)}</span></div>
+                        <div className="user-chip"><span className="avatar">{iniciales}</span><span>{text(nombreRol(rol))}</span></div>
                     </div>
                 </header>
                 <section className="dashboard-content">
                     <div className="page-heading">
-                        <div><span className="page-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>
+                        <div><span className="page-eyebrow">{text(eyebrow)}</span><h1>{text(title)}</h1><p>{text(description)}</p></div>
                         {badge && <div className="security-badge">{badge}</div>}
                     </div>
                     {children}

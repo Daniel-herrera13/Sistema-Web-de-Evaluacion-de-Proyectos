@@ -15,3 +15,29 @@
 @media (max-width: 1000px) { .gestion-layout { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .gestion-shell .sidebar { position: fixed; }.members-grid { grid-template-columns: 1fr; } }
 .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 20px; }.detail-grid span, .detail-grid strong { display: block; }.detail-grid span { margin-bottom: 6px; color: var(--dashboard-muted); font-size: 11px; }.detail-grid strong { font-size: 13px; font-weight: 600; }
+
+/* Alcance de los criterios: colores estables y ordenados de general a específico. */
+.scope-materia { --scope-color: #2563eb; --scope-bg: #eff6ff; --scope-ink: #1e40af; }
+.scope-asignacion { --scope-color: #7c3aed; --scope-bg: #f5f3ff; --scope-ink: #6d28d9; }
+.scope-grupo { --scope-color: #15803d; --scope-bg: #f0fdf4; --scope-ink: #166534; }
+.scope-proyecto { --scope-color: #c2410c; --scope-bg: #fff7ed; --scope-ink: #9a3412; }
+.criteria-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+.scope-badge { display: inline-flex; max-width: 340px; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--scope-color) 24%, white); border-radius: 999px; color: var(--scope-ink); background: var(--scope-bg); font-family: inherit; font-size: 10px; font-weight: 750; line-height: 1.45; white-space: normal; }
+.criteria-legend .scope-badge { cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
+.criteria-legend .scope-badge:hover { transform: translateY(-1px); border-color: var(--scope-color); }
+.criteria-legend .scope-badge.is-selected { border-color: var(--scope-color); box-shadow: 0 0 0 2px color-mix(in srgb, var(--scope-color) 24%, transparent); }
+.scope-all { padding: 5px 10px; border: 1px solid var(--dashboard-border); border-radius: 999px; color: var(--dashboard-text); background: #fff; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+.scope-all.is-selected { border-color: var(--dashboard-text); box-shadow: 0 0 0 2px color-mix(in srgb, var(--dashboard-text) 16%, transparent); }
+.criteria-legend small { flex-basis: 100%; color: var(--dashboard-muted); font-size: 11px; }
+.criteria-row td:first-child { border-left: 4px solid var(--scope-color); }
+.criteria-row:hover td { background: color-mix(in srgb, var(--scope-bg) 68%, white); }
+.criteria-total.scope-materia, .criteria-total.scope-asignacion, .criteria-total.scope-grupo, .criteria-total.scope-proyecto { border-left: 4px solid var(--scope-color); color: var(--scope-ink); background: var(--scope-bg); }
+.criteria-total.scope-materia.over, .criteria-total.scope-asignacion.over, .criteria-total.scope-grupo.over, .criteria-total.scope-proyecto.over { color: #8d291b; background: #ffe4dc; }
+.user-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px) auto; gap: 14px; align-items: end; margin-top: 18px; }
+.user-filters .secondary-button { min-height: 38px; }
+.role-badge { display: inline-flex; align-items: center; padding: 5px 10px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 800; }
+.role-admin { color: #795600; border-color: #f0d47a; background: #fff4c2; }
+.role-docente { color: #a1261d; border-color: #f1b3ad; background: #ffe9e6; }
+.role-jurado { color: #1e4d9b; border-color: #b6cef8; background: #eaf2ff; }
+.role-alumno { color: #354052; border-color: #cfd5de; background: #fff; }
+@media (max-width: 760px) { .user-filters { grid-template-columns: 1fr; } }

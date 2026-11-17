@@ -5,8 +5,8 @@ import jakarta.validation.constraints.NotNull;
 public final class AsignacionDto {
     private AsignacionDto() {}
 
-    public record Response(Long id, String materiaNombre, String seccionNombre,
-                           String ciclo, String subseccionLetra, String docenteNombre) {}
+    public record Response(Long id, Long materiaId, String materiaNombre, String seccionNombre,
+                           String ciclo, String subseccionLetra, Long docenteId, String docenteNombre) {}
 
     /** subseccionId vacío (null) = aplicar la materia a todas las subsecciones de la sección. */
     public record Guardar(

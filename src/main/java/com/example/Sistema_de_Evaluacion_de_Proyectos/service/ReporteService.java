@@ -111,7 +111,14 @@ public class ReporteService {
             }
         }
 
-        String titulo = "Proyecto: " + r.titulo() + " | Grupo " + r.grupo();
+        String titulo = "Proyecto: " + r.titulo()
+                + " | Materia: " + r.materia()
+                + " | Sección: " + r.seccion()
+                + " | Grupo: " + r.grupo()
+                + " | Ciclo: " + r.ciclo()
+                + " | Empresa: " + (r.empresa() == null ? "Sin empresa" : r.empresa())
+                + " | Estado: " + r.estadoProyecto()
+                + " | Publicación: " + (r.publicado() ? "Publicados" : "Pendiente");
         if (!jurado) {
             titulo += " | Nota docentes/jurado: "
                     + (r.notaFinal() == null ? "sin nota aún" : r.notaFinal().toPlainString());

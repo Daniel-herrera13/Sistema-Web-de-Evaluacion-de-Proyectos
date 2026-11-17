@@ -32,10 +32,12 @@ public class AsignacionService {
         return asignaciones.findAll().stream()
                 .map(a -> new AsignacionDto.Response(
                         a.getId(),
+                        a.getMateria().getId(),
                         a.getMateria().getNombre(),
                         a.getSubseccion().getSeccion().getNombre(),
                         a.getSubseccion().getSeccion().getCiclo(),
                         a.getSubseccion().getLetra(),
+                        a.getDocente().getId(),
                         nombreDocente(a.getDocente())))
                 .toList();
     }
@@ -63,7 +65,7 @@ public class AsignacionService {
                 .orElseThrow(() -> Errores.noEncontrado("La materia no existe"));
         Usuario docente = usuarios.findById(r.docenteId())
                 .orElseThrow(() -> Errores.noEncontrado("El docente no existe"));
-        if (!"DOCENTE".equals(String.valueOf(docente.getRol()))) {
+        if (docente.getRol() == null || !"DOCENTE".equalsIgnoreCase(docente.getRol().getNombre())) {
             throw Errores.invalido("El usuario seleccionado no es docente");
         }
 

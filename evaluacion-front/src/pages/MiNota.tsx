@@ -33,6 +33,7 @@ export default function MiNota() {
                     return (
                         <section className="panel compacto nota-card" key={it.proyectoId}>
                             <span className="panel-kicker">{it.titulo}</span>
+                            <small className="nota-info">Materia: {it.materia || 'Materia no especificada'}</small>
                             {!it.publicado || !nota ? (
                                 <>
                                     <strong className="nota-grande pendiente">—</strong>

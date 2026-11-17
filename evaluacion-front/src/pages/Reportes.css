@@ -1,0 +1,10 @@
+.report-row td:first-child { border-left: 4px solid var(--report-color); }
+.report-materia { display: inline-flex; padding: 5px 9px; border: 1px solid color-mix(in srgb, var(--report-color) 26%, white); border-radius: 999px; color: var(--report-ink); background: var(--report-bg); font-size: 10px; font-weight: 800; }
+.materia-color-0 { --report-color: #2563eb; --report-bg: #eff6ff; --report-ink: #1e40af; }
+.materia-color-1 { --report-color: #7c3aed; --report-bg: #f5f3ff; --report-ink: #6d28d9; }
+.materia-color-2 { --report-color: #15803d; --report-bg: #f0fdf4; --report-ink: #166534; }
+.materia-color-3 { --report-color: #c2410c; --report-bg: #fff7ed; --report-ink: #9a3412; }
+.materia-color-4 { --report-color: #0891b2; --report-bg: #ecfeff; --report-ink: #155e75; }
+.materia-color-5 { --report-color: #be123c; --report-bg: #fff1f2; --report-ink: #9f1239; }
+.materia-color-6 { --report-color: #4f46e5; --report-bg: #eef2ff; --report-ink: #3730a3; }
+.materia-color-7 { --report-color: #0f766e; --report-bg: #f0fdfa; --report-ink: #115e59; }

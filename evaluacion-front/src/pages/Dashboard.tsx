@@ -76,12 +76,24 @@ export default function Dashboard() {
                     { label: 'Proyectos registrados', valor: p.length, icon: FileText },
                 ]
             } else if (rol === 'DOCENTE') {
-                const [m, g, p, mias] = await Promise.all([pedir('/materias'), pedir('/grupos'), pedir('/proyectos'), pedir('/invitaciones/mias')])
+                const [materias, grupos, proyectos, asignaciones, mias] = await Promise.all([
+                    pedir('/materias'), pedir('/grupos'), pedir('/proyectos'), pedir('/asignaciones'), pedir('/invitaciones/mias'),
+                ])
+                const docenteId = Number(usuario?.id)
+                const asignacionesPropias = asignaciones.filter((a) => Number(a.docenteId) === docenteId)
+                const asignacionIds = new Set(asignacionesPropias.map((a) => Number(a.id)))
+                const gruposPropios = grupos.filter((g) => asignacionIds.has(Number(g.asignacionId)))
+                const grupoIds = new Set(gruposPropios.map((g) => Number(g.id)))
+                const materiasIds = new Set<number>([
+                    ...materias.filter((m) => Number(m.docentePrincipalId) === docenteId).map((m) => Number(m.id)),
+                    ...asignacionesPropias.map((a) => Number(a.materiaId)),
+                ])
+                const proyectosPropios = proyectos.filter((p) => grupoIds.has(Number(p.grupoId)))
                 pend = mias.filter((x) => x.estadoEvaluacion !== 'ENVIADA')
                 cards = [
-                    { label: 'Materias', valor: m.length, icon: BookOpen },
-                    { label: 'Grupos', valor: g.length, icon: GraduationCap },
-                    { label: 'Proyectos', valor: p.length, icon: FileText },
+                    { label: 'Materias', valor: materiasIds.size, icon: BookOpen },
+                    { label: 'Grupos', valor: gruposPropios.length, icon: GraduationCap },
+                    { label: 'Proyectos', valor: proyectosPropios.length, icon: FileText },
                     { label: 'Por calificar', valor: pend.length, icon: CheckCircle2 },
                 ]
             } else if (rol === 'JURADO') {
@@ -111,7 +123,7 @@ export default function Dashboard() {
         }
         void cargar()
         return () => { activo = false }
-    }, [rol])
+    }, [rol, usuario?.id])
 
     const texto = textos[rol]
     const publicada = notas.find((x) => x.publicado && x.nota)

@@ -23,8 +23,13 @@ public class MateriaService {
     }
 
     @Transactional(readOnly = true)
-    public List<MateriaDto.Respuesta> listar() {
-        return materias.findAll().stream().map(MateriaDto.Respuesta::de).toList();
+    public List<MateriaDto.Respuesta> listar(String correo) {
+        Usuario actor = usuarios.findByCorreo(correo)
+                .orElseThrow(() -> Errores.noEncontrado("Usuario no encontrado"));
+        List<Materia> visibles = "docente".equalsIgnoreCase(actor.getRol().getNombre())
+                ? materias.findImpartidasPorDocente(actor.getId())
+                : materias.findAll();
+        return visibles.stream().map(MateriaDto.Respuesta::de).toList();
     }
 
     @Transactional(readOnly = true)

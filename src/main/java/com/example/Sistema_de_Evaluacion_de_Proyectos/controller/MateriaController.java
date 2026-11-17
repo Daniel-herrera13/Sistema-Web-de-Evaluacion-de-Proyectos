@@ -5,6 +5,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.service.MateriaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +21,8 @@ public class MateriaController {
     }
 
     @GetMapping
-    public List<MateriaDto.Respuesta> listar() {
-        return service.listar();
+    public List<MateriaDto.Respuesta> listar(Authentication auth) {
+        return service.listar(auth.getName());
     }
 
     @GetMapping("/{id}")

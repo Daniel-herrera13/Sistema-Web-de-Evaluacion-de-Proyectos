@@ -1,8 +1,9 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, type ClipboardEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
     Eye,
     EyeOff,
@@ -59,7 +60,7 @@ export default function App() {
     const [error, setError] = useState('');
     const { theme, toggleTheme } = useTheme();
     const isDarkMode = theme === 'dark';
-    const [lang, setLang] = useState('es'); // 'es' | 'en'
+    const { language: lang, toggleLanguage } = useLanguage();
 
     // Hero Carousel Index
     const [carouselIndex, setCarouselIndex] = useState(0);
@@ -72,6 +73,8 @@ export default function App() {
     const [isResetSuccess, setIsResetSuccess] = useState(false);
     const [resetPassword, setResetPassword] = useState('');
     const [resetPassword2, setResetPassword2] = useState('');
+    const [showResetPassword, setShowResetPassword] = useState(false);
+    const [showResetPassword2, setShowResetPassword2] = useState(false);
     const [resetError, setResetError] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
 
@@ -172,6 +175,19 @@ export default function App() {
         }
     };
 
+    const handleCodePaste = (index: number, event: ClipboardEvent<HTMLInputElement>) => {
+        event.preventDefault();
+        const raw = event.clipboardData.getData('text').replace(/\D/g, '');
+        const startIndex = raw.length > 1 ? 0 : index;
+        const pasted = raw.slice(0, 6 - startIndex);
+        if (!pasted) return;
+        const newCode = [...resetCode];
+        pasted.split('').forEach((digit, offset) => { newCode[startIndex + offset] = digit; });
+        setResetCode(newCode);
+        const focusIndex = Math.min(startIndex + pasted.length, 5);
+        document.getElementById(`code-input-desktop-${focusIndex}`)?.focus();
+    };
+
     const cerrarRecuperacion = () => {
         setShowForgotModal(false);
         setModalStep(1);
@@ -179,6 +195,8 @@ export default function App() {
         setResetCode(['', '', '', '', '', '']);
         setResetPassword('');
         setResetPassword2('');
+        setShowResetPassword(false);
+        setShowResetPassword2(false);
         setResetError('');
         setIsResetSuccess(false);
     };
@@ -251,7 +269,7 @@ export default function App() {
             <div className="fixed top-5 right-8 z-50 flex items-center gap-3">
                 {/* Language Switcher */}
                 <button
-                    onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
+                    onClick={toggleLanguage}
                     className="px-3 py-2 rounded-xl bg-white/70 dark:bg-slate-800/80 backdrop-blur-xl border border-white/50 dark:border-slate-700/60 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all text-xs font-bold flex items-center gap-2 cursor-pointer"
                 >
                     <Globe className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -851,6 +869,9 @@ export default function App() {
                                                         maxLength={1}
                                                         value={digit}
                                                         onChange={(e) => handleCodeChange(idx, e.target.value)}
+                                                        onPaste={(e) => handleCodePaste(idx, e)}
+                                                        autoComplete={idx === 0 ? 'one-time-code' : 'off'}
+                                                        aria-label={`Dígito ${idx + 1} del código`}
                                                         className={`w-12 h-12 text-center text-xl font-bold rounded-2xl border outline-none ${
                                                             isDarkMode
                                                                 ? 'bg-slate-800 border-slate-700 text-white focus:border-red-500'
@@ -860,10 +881,24 @@ export default function App() {
                                                 ))}
                                             </div>
                                         </div>
-                                        <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)}
-                                            placeholder="Nueva contraseña (mínimo 8 caracteres)" className={campo} />
-                                        <input type="password" value={resetPassword2} onChange={(e) => setResetPassword2(e.target.value)}
-                                            placeholder="Repite la nueva contraseña" className={campo} />
+                                        <div className="relative">
+                                            <input type={showResetPassword ? 'text' : 'password'} value={resetPassword} onChange={(e) => setResetPassword(e.target.value)}
+                                                placeholder="Nueva contraseña (mínimo 8 caracteres)" autoComplete="new-password" className={`${campo} pr-12`} />
+                                            <button type="button" onClick={() => setShowResetPassword((visible) => !visible)}
+                                                aria-label={showResetPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                                className="absolute inset-y-0 right-0 px-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                                {showResetPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
+                                        <div className="relative">
+                                            <input type={showResetPassword2 ? 'text' : 'password'} value={resetPassword2} onChange={(e) => setResetPassword2(e.target.value)}
+                                                placeholder="Repite la nueva contraseña" autoComplete="new-password" className={`${campo} pr-12`} />
+                                            <button type="button" onClick={() => setShowResetPassword2((visible) => !visible)}
+                                                aria-label={showResetPassword2 ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                                className="absolute inset-y-0 right-0 px-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                                {showResetPassword2 ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 

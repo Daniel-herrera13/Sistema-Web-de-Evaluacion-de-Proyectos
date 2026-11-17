@@ -51,6 +51,7 @@ export default function MiProyecto() {
                             <span className="status-tag">{proyecto.estado}</span>
                         </div>
                         <div className="detail-grid">
+                            <div><span>Materia</span><strong>{proyecto.materiaNombre || 'Materia no especificada'}</strong></div>
                             <div><span>Descripción</span><strong>{proyecto.descripcion || 'Sin descripción'}</strong></div>
                             <div><span>Empresa</span><strong>{proyecto.empresaNombre || 'Sin empresa'}</strong></div>
                             <div><span>Resultados</span><strong>{proyecto.resultadosPublicados ? 'Publicados' : 'Aún sin publicar'}</strong></div>

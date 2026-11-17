@@ -21,6 +21,7 @@ interface Campo {
     disabled?: boolean
     pattern?: string
     placeholder?: string
+    maxLength?: number
     options?: [string, string][]
 }
 
@@ -46,6 +47,8 @@ const emptyForms: Record<Module, Row> = {
 
 const etiquetaNivel: Record<string, string> = { MATERIA: 'Materia', ASIGNACION: 'Materia en subsección', GRUPO: 'Grupo', PROYECTO: 'Proyecto' }
 const claveNivel: Record<string, string> = { MATERIA: 'materiaId', ASIGNACION: 'asignacionId', GRUPO: 'grupoId', PROYECTO: 'proyectoId' }
+const ordenNivel: Record<string, number> = { MATERIA: 0, ASIGNACION: 1, GRUPO: 2, PROYECTO: 3 }
+const claseNivel = (nivel: string) => `scope-${String(nivel ?? '').toLowerCase()}`
 const idsNumericos = ['docentePrincipalId', 'asignacionId', 'seccionId', 'grupoId', 'empresaId', 'materiaId', 'proyectoId', 'rolId', 'ponderacion']
 
 // Un conjunto de criterios = mismo nivel + mismo ciclo (ciclo vacío = conjunto general)
@@ -57,6 +60,8 @@ const listData = (data: any): Row[] => (Array.isArray(data) ? data : data?.conte
 const get = async (url: string): Promise<Row[]> => listData((await api.get(url)).data)
 const texto = (v: any): string =>
     v == null ? '' : typeof v === 'object' ? `${v.nombre ?? ''} ${v.apellido ?? ''}`.trim() : String(v)
+const normalizarBusqueda = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const etiquetaRol: Record<string, string> = { ADMIN: 'Administrador', DOCENTE: 'Docente', JURADO: 'Jurado', ALUMNO: 'Alumno' }
 
 async function cargarDocentes(): Promise<Row[]> {
     try { return await get('/usuarios/docentes') } catch { /* se intenta con el listado general */ }
@@ -83,6 +88,9 @@ function Modulo({ active }: { active: Module }) {
     const [editing, setEditing] = useState<number | null>(null)
     const [notice, setNotice] = useState('')
     const [error, setError] = useState('')
+    const [nivelFiltro, setNivelFiltro] = useState<string | null>(null)
+    const [busquedaUsuarios, setBusquedaUsuarios] = useState('')
+    const [rolFiltroUsuarios, setRolFiltroUsuarios] = useState('TODOS')
     const [grupoSel, setGrupoSel] = useState<Row | null>(null)
     const [members, setMembers] = useState<Row[]>([])
     const [detail, setDetail] = useState<Row | null>(null)
@@ -187,7 +195,7 @@ function Modulo({ active }: { active: Module }) {
             { key: 'nombre', label: 'Nombre', required: true },
             { key: 'contacto', label: 'Contacto' },
             { key: 'correo', label: 'Correo', type: 'email' },
-            { key: 'telefono', label: 'Teléfono' },
+            { key: 'telefono', label: 'Teléfono (8 dígitos)', type: 'tel', pattern: '(?:\\d{8}|\\d{4}-\\d{4})', placeholder: '6620-5555 o 66205555', maxLength: 9 },
         ],
         proyectos: [
             { key: 'titulo', label: 'Título', required: true },
@@ -209,6 +217,16 @@ function Modulo({ active }: { active: Module }) {
 
     const setField = (key: string, value: string) =>
         setForm((actual) => ({ ...actual, [key]: value, ...(key === 'nivel' ? { nivelId: '' } : {}) }))
+
+    const cambiarCampo = (key: string, value: string) => {
+        if (active === 'empresas' && key === 'telefono') {
+            const digitos = value.replace(/\D/g, '').slice(0, 8)
+            const telefono = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos
+            setField(key, telefono)
+            return
+        }
+        setField(key, value)
+    }
 
     // ---------- acciones ----------
     const submit = async (event: FormEvent) => {
@@ -379,7 +397,10 @@ function Modulo({ active }: { active: Module }) {
         usuarios: [
             { th: 'Nombre', td: (r) => `${r.nombre ?? ''} ${r.apellido ?? ''}` },
             { th: 'Correo', td: (r) => r.correo },
-            { th: 'Rol', td: (r) => texto(r.rol) },
+            { th: 'Rol', td: (r) => {
+                const rol = texto(r.rol).trim().toUpperCase()
+                return <span className={`role-badge role-${rol.toLowerCase()}`}>{etiquetaRol[rol] ?? texto(r.rol)}</span>
+            } },
         ],
         materias: [
             { th: 'Materia', td: (r) => <><strong>{r.nombre}</strong><small>{r.descripcion}</small></> },
@@ -407,7 +428,7 @@ function Modulo({ active }: { active: Module }) {
         ],
         criterios: [
             { th: 'Criterio', td: (r) => <>{r.nombre}<small>{r.descripcion}</small></> },
-            { th: 'Se aplica a', td: (r) => nombreNivel(r) },
+            { th: 'Se aplica a', td: (r) => <span className={`scope-badge ${claseNivel(r.nivel)}`}>{nombreNivel(r)}</span> },
             { th: 'Ciclo', td: (r) => r.ciclo || 'General' },
             { th: 'Ponderación', td: (r) => `${r.ponderacion}%` },
         ],
@@ -428,6 +449,22 @@ function Modulo({ active }: { active: Module }) {
         }
         return [...mapa.entries()].map(([key, v]) => ({ key, ...v }))
     })()
+
+    const filasTabla = active === 'criterios'
+        ? rows.filter((row) => !nivelFiltro || row.nivel === nivelFiltro).sort((a, b) =>
+            (ordenNivel[a.nivel] ?? 99) - (ordenNivel[b.nivel] ?? 99)
+            || nombreNivel(a).localeCompare(nombreNivel(b), 'es')
+            || String(a.ciclo ?? '').localeCompare(String(b.ciclo ?? ''), 'es')
+            || String(a.nombre ?? '').localeCompare(String(b.nombre ?? ''), 'es'))
+        : active === 'usuarios'
+            ? rows.filter((row) => {
+                const nombreCorreo = normalizarBusqueda(`${row.nombre ?? ''} ${row.apellido ?? ''} ${row.correo ?? ''}`)
+                const rol = texto(row.rol).trim().toUpperCase()
+                return nombreCorreo.includes(normalizarBusqueda(busquedaUsuarios.trim()))
+                    && (rolFiltroUsuarios === 'TODOS' || rol === rolFiltroUsuarios)
+            })
+        : rows
+    const totalesVisibles = nivelFiltro ? totales.filter((total) => total.nivel === nivelFiltro) : totales
 
     return (
         <Shell eyebrow="GESTIÓN ACADÉMICA" title={meta.title} description={meta.description}>
@@ -456,10 +493,11 @@ function Modulo({ active }: { active: Module }) {
                                         type={c.type ?? 'text'}
                                         step={c.step}
                                         pattern={c.pattern}
+                                        maxLength={c.maxLength}
                                         placeholder={c.placeholder}
-                                        title={c.pattern ? 'Formato NN-AAAA, por ejemplo 02-2026' : undefined}
+                                        title={c.key === 'telefono' ? 'Ingresa 8 dígitos, con guion opcional: 6620-5555' : c.pattern ? 'Formato NN-AAAA, por ejemplo 02-2026' : undefined}
                                         value={form[c.key] ?? ''}
-                                        onChange={(e) => setField(c.key, e.target.value)}
+                                        onChange={(e) => cambiarCampo(c.key, e.target.value)}
                                     />
                                 )}
                             </label>
@@ -482,12 +520,32 @@ function Modulo({ active }: { active: Module }) {
                 </section>
 
                 <section className="panel table-panel">
-                    <div className="panel-heading"><div><span className="panel-kicker">LISTADO</span><h2>{rows.length} registros</h2></div></div>
+                    <div className="panel-heading"><div><span className="panel-kicker">LISTADO</span><h2>{filasTabla.length} registros</h2></div></div>
 
-                    {active === 'criterios' && totales.length > 0 && (
+                    {active === 'usuarios' && (
+                        <div className="user-filters">
+                            <label className="gestion-field">
+                                <span>Buscar por nombre o correo</span>
+                                <input type="search" value={busquedaUsuarios} onChange={(e) => setBusquedaUsuarios(e.target.value)} placeholder="Nombre, apellido o correo" />
+                            </label>
+                            <label className="gestion-field">
+                                <span>Filtrar por rol</span>
+                                <select value={rolFiltroUsuarios} onChange={(e) => setRolFiltroUsuarios(e.target.value)}>
+                                    <option value="TODOS">Todos los roles</option>
+                                    <option value="ADMIN">Administrador</option>
+                                    <option value="DOCENTE">Docente</option>
+                                    <option value="JURADO">Jurado</option>
+                                    <option value="ALUMNO">Alumno</option>
+                                </select>
+                            </label>
+                            <button type="button" className="secondary-button" onClick={() => { setBusquedaUsuarios(''); setRolFiltroUsuarios('TODOS') }} disabled={!busquedaUsuarios && rolFiltroUsuarios === 'TODOS'}>Limpiar filtros</button>
+                        </div>
+                    )}
+
+                    {active === 'criterios' && totalesVisibles.length > 0 && (
                         <div className="level-totals">
-                            {totales.map((t) => (
-                                <div key={t.key} className={`criteria-total ${t.suma > 100 ? 'over' : t.suma === 100 ? '' : 'pend'}`}>
+                            {totalesVisibles.map((t) => (
+                                <div key={t.key} className={`criteria-total ${claseNivel(t.nivel)} ${t.suma > 100 ? 'over' : t.suma === 100 ? '' : 'pend'}`}>
                                     {t.label}: <strong>{t.suma.toFixed(2)}%</strong>{' '}
                                     {t.suma === 100 ? '— completo' : t.suma > 100 ? '— excede el 100%' : `— faltan ${(100 - t.suma).toFixed(2)}%`}
                                     {usos[t.key] && <span className="tag tag-warn" style={{ marginLeft: 8 }}>En uso</span>}
@@ -501,15 +559,26 @@ function Modulo({ active }: { active: Module }) {
                         </div>
                     )}
 
+                    {active === 'criterios' && (
+                        <div className="criteria-legend" aria-label="Colores por alcance del criterio">
+                            <button type="button" className={`scope-badge scope-materia ${nivelFiltro === 'MATERIA' ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === 'MATERIA'} onClick={() => setNivelFiltro(nivelFiltro === 'MATERIA' ? null : 'MATERIA')}>Materia · estándar</button>
+                            <button type="button" className={`scope-badge scope-asignacion ${nivelFiltro === 'ASIGNACION' ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === 'ASIGNACION'} onClick={() => setNivelFiltro(nivelFiltro === 'ASIGNACION' ? null : 'ASIGNACION')}>Sección / subsección</button>
+                            <button type="button" className={`scope-badge scope-grupo ${nivelFiltro === 'GRUPO' ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === 'GRUPO'} onClick={() => setNivelFiltro(nivelFiltro === 'GRUPO' ? null : 'GRUPO')}>Grupo</button>
+                            <button type="button" className={`scope-badge scope-proyecto ${nivelFiltro === 'PROYECTO' ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === 'PROYECTO'} onClick={() => setNivelFiltro(nivelFiltro === 'PROYECTO' ? null : 'PROYECTO')}>Proyecto</button>
+                            <button type="button" className={`scope-all ${nivelFiltro === null ? 'is-selected' : ''}`} aria-pressed={nivelFiltro === null} onClick={() => setNivelFiltro(null)}>Todos</button>
+                            <small>Selecciona un color para filtrar por alcance. La lista va de lo general a lo específico.</small>
+                        </div>
+                    )}
+
                     <div className="table-wrap">
                         <table>
                             <thead><tr>{columnas[active].map((c) => <th key={c.th}>{c.th}</th>)}<th>Acciones</th></tr></thead>
                             <tbody>
-                            {rows.map((row) => {
+                            {filasTabla.map((row) => {
                                 const bloqueado = active === 'criterios' && Boolean(usos[claveConjunto(row)]) && usuario?.rol !== 'ADMIN'
                                 const aviso = 'Este conjunto ya se usó en evaluaciones: duplícalo a otro ciclo para cambiarlo'
                                 return (
-                                    <tr key={row.id}>
+                                    <tr key={row.id} className={active === 'criterios' ? `criteria-row ${claseNivel(row.nivel)}` : undefined}>
                                         {columnas[active].map((c) => <td key={c.th}>{c.td(row)}</td>)}
                                         <td>
                                             <div className="row-actions">
@@ -524,7 +593,7 @@ function Modulo({ active }: { active: Module }) {
                             })}
                             </tbody>
                         </table>
-                        {rows.length === 0 && <div className="empty-state"><Icon size={28} /><strong>No hay registros todavía</strong><p>Agrega el primero usando el formulario.</p></div>}
+                        {filasTabla.length === 0 && <div className="empty-state"><Icon size={28} /><strong>{active === 'usuarios' && (busquedaUsuarios || rolFiltroUsuarios !== 'TODOS') ? 'No hay usuarios que coincidan con estos filtros' : nivelFiltro ? 'No hay criterios para este alcance' : 'No hay registros todavía'}</strong>{active !== 'usuarios' && !nivelFiltro && <p>Agrega el primero usando el formulario.</p>}</div>}
                     </div>
                 </section>
             </div>

@@ -4,11 +4,12 @@ import App from './App'
 import './index.css'
 import './tema-oscuro.css'
 import { ThemeProvider } from './context/ThemeContext'
+import { LanguageProvider } from './context/LanguageContext'
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <ThemeProvider>
-            <App />
+            <LanguageProvider><App /></LanguageProvider>
         </ThemeProvider>
     </StrictMode>,
 )

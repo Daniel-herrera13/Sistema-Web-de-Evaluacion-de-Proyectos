@@ -15,6 +15,6 @@ public class ProyectoDto {
 
     public record Response(Long id, String titulo, String descripcion,
                            Long grupoId, String grupoNombre, Long seccionId, Long materiaId,
-                           Long empresaId, String empresaNombre, String estado,
+                           String materiaNombre, Long empresaId, String empresaNombre, String estado,
                            Boolean resultadosPublicados) {}
 }

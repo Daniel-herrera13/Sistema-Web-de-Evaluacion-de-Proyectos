@@ -27,9 +27,15 @@ public class CorreoService {
     }
 
     public void enviarCodigo(String para, String nombre, String codigo) {
+        // La consola del servidor permite al equipo administrador consultar el código generado.
+        // El código sigue almacenándose únicamente como hash en la base de datos.
+        log.info("[RECUPERACION] Código generado para {}: {}", para, codigo);
+
         JavaMailSender sender = habilitado ? mail.getIfAvailable() : null;
         if (sender == null) {
-            log.warn("[MODO DESARROLLO] Código de recuperación para {}: {}", para, codigo);
+            if (habilitado) {
+                log.error("SMTP está habilitado, pero JavaMailSender no está disponible. No se pudo enviar a {}", para);
+            }
             return;
         }
         String texto = "Hola " + nombre + ",\n\nTu código para restablecer la contraseña es: " + codigo

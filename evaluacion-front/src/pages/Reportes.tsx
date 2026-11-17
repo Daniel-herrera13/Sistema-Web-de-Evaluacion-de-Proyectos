@@ -3,6 +3,7 @@ import { Download } from 'lucide-react'
 import api from '../api/axios'
 import Shell from '../components/Shell'
 import EstadisticasReporte from '../components/estadisticas/EstadisticasReporte'
+import './Reportes.css'
 import { descargar, limpiar, type Formato } from '../utils/descargas'
 import { mensajeError } from '../utils/errores'
 import type { FiltrosEstadisticas } from '../types/estadisticas'
@@ -11,9 +12,15 @@ type Row = Record<string, any>
 const lista = (d: any): Row[] => (Array.isArray(d) ? d : d?.content ?? [])
 const fmt = (n: any) => (n === null || n === undefined ? '—' : Number(n).toFixed(2))
 const estados: Record<string, string> = { SIN_INICIAR: 'Sin iniciar', BORRADOR: 'Borrador', ENVIADA: 'Enviada' }
+const colorMateria = (nombre: string, materias: Row[]) => {
+    const indice = materias.findIndex((m) => m.nombre === nombre)
+    const hash = [...(nombre ?? '')].reduce((total, caracter) => total + caracter.codePointAt(0)!, 0)
+    return `materia-color-${(indice >= 0 ? indice : hash) % 8}`
+}
 
 export default function Reportes() {
     const [materias, setMaterias] = useState<Row[]>([])
+    const [ciclos, setCiclos] = useState<string[]>([])
     const [filtros, setFiltros] = useState({ materiaId: '', estado: '', ciclo: '', publicado: '' })
     const [filas, setFilas] = useState<Row[]>([])
     const [detalle, setDetalle] = useState<Row | null>(null)
@@ -22,6 +29,10 @@ export default function Reportes() {
 
     useEffect(() => {
         api.get('/materias').then((r) => setMaterias(lista(r.data))).catch(() => undefined)
+        api.get('/reportes/proyectos').then((r) => {
+            const disponibles = lista(r.data).map((f) => String(f.ciclo ?? '')).filter(Boolean)
+            setCiclos([...new Set(disponibles)].sort((a, b) => a.localeCompare(b, 'es')))
+        }).catch(() => undefined)
     }, [])
 
     useEffect(() => {
@@ -80,7 +91,10 @@ export default function Reportes() {
                         </select>
                     </label>
                     <label className="mod-field"><span>CICLO</span>
-                        <input className="mod-input" placeholder="02-2026" value={filtros.ciclo} onChange={(e) => cambiar('ciclo', e.target.value)} />
+                        <select className="mod-select" value={filtros.ciclo} onChange={(e) => cambiar('ciclo', e.target.value)}>
+                            <option value="">Todos</option>
+                            {ciclos.map((ciclo) => <option key={ciclo} value={ciclo}>{ciclo}</option>)}
+                        </select>
                     </label>
                     <label className="mod-field"><span>PUBLICACIÓN</span>
                         <select className="mod-select" value={filtros.publicado} onChange={(e) => cambiar('publicado', e.target.value)}>
@@ -94,11 +108,11 @@ export default function Reportes() {
                         <thead><tr><th>Proyecto</th><th>Grupo</th><th>Sección</th><th>Materia</th><th>Evaluaciones</th><th>Nota</th><th>Publicado</th></tr></thead>
                         <tbody>
                         {filas.map((f) => (
-                            <tr key={f.proyectoId}>
+                            <tr key={f.proyectoId} className={`report-row ${colorMateria(f.materia, materias)}`}>
                                 <td><button className="project-link" onClick={() => void abrir(f.proyectoId)}><strong>{f.titulo}</strong></button><small>{f.empresa || 'Sin empresa'}</small></td>
                                 <td>{f.grupo}</td>
                                 <td>{f.seccion} · {f.ciclo}</td>
-                                <td>{f.materia}</td>
+                                <td><span className={`report-materia ${colorMateria(f.materia, materias)}`}>{f.materia}</span></td>
                                 <td>{f.enviadas} de {f.invitados}</td>
                                 <td><strong>{fmt(f.notaFinal)}</strong></td>
                                 <td><span className={`tag ${f.publicado ? 'tag-ok' : 'tag-warn'}`}>{f.publicado ? 'Sí' : 'No'}</span></td>

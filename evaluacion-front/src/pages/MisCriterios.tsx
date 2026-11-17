@@ -55,7 +55,11 @@ export default function MisCriterios() {
                 {bloques.map((b) => (
                     <section className="panel compacto" key={b.proyecto.id}>
                         <div className="panel-heading">
-                            <div><span className="panel-kicker">GRUPO {b.proyecto.grupoNombre}</span><h2>{b.proyecto.titulo}</h2></div>
+                            <div>
+                                <span className="panel-kicker">GRUPO {b.proyecto.grupoNombre}</span>
+                                <h2>{b.proyecto.titulo}</h2>
+                                <p className="nota-info">Materia: {b.proyecto.materiaNombre || 'Materia no especificada'}</p>
+                            </div>
                             {b.origen !== 'NINGUNO' && <span className="tag tag-ok">{origenes[b.origen] ?? b.origen}</span>}
                         </div>
                         {b.origen === 'NINGUNO' ? (

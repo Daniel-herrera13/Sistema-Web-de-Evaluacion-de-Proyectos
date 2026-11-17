@@ -59,12 +59,14 @@ public class NotaFinalService {
         for (GrupoAlumno m : miembros.findByAlumnoId(u.getId())) {
             for (Proyecto p : proyectos.findByGrupoId(m.getGrupo().getId())) {
                 if (!Boolean.TRUE.equals(p.getResultadosPublicados())) {
-                    salida.add(new NotaFinalDto.MiNota(p.getId(), p.getTitulo(), false, null));
+                    salida.add(new NotaFinalDto.MiNota(p.getId(), p.getTitulo(),
+                            p.getGrupo().getAsignacion().getMateria().getNombre(), false, null));
                     continue;
                 }
                 NotaFinalDto.NotaAlumno mia = notasProyecto(p.getId()).alumnos().stream()
                         .filter(a -> a.alumnoId().equals(u.getId())).findFirst().orElse(null);
-                salida.add(new NotaFinalDto.MiNota(p.getId(), p.getTitulo(), true, mia));
+                salida.add(new NotaFinalDto.MiNota(p.getId(), p.getTitulo(),
+                        p.getGrupo().getAsignacion().getMateria().getNombre(), true, mia));
             }
         }
         return salida;
@@ -111,11 +113,13 @@ public class NotaFinalService {
             Map<Long, Integer> hechas = new HashMap<>();   // evaluadorId -> cuántas evaluaciones hizo
             for (Map.Entry<Long, BigDecimal> en : porEval.entrySet()) {
                 EvaluacionAlumno e = evals.get(en.getKey());
+                if (e.getEvaluador().getId().equals(e.getEvaluado().getId())) continue;
                 recibidas.computeIfAbsent(e.getEvaluado().getId(), k -> new ArrayList<>()).add(en.getValue());
                 hechas.merge(e.getEvaluador().getId(), 1, Integer::sum);
             }
+            int evaluacionesEsperadas = Math.max(0, grupo.size() - 1);
             for (GrupoAlumno m : grupo)
-                if (hechas.getOrDefault(m.getAlumno().getId(), 0) < grupo.size()) autoCompleta = false;
+                if (hechas.getOrDefault(m.getAlumno().getId(), 0) < evaluacionesEsperadas) autoCompleta = false;
         }
 
         boolean docOk = !usaDoc || r.definitiva();

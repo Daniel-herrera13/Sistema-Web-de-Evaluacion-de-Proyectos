@@ -55,6 +55,9 @@ public class AutoevaluacionService {
         if (Boolean.TRUE.equals(p.getResultadosPublicados()))
             throw Http.conflicto("Los resultados ya fueron publicados; no se puede modificar la evaluación");
 
+        if (u.getId().equals(r.evaluadoId()))
+            throw Http.invalido("No puedes evaluarte a ti mismo; solo puedes evaluar a tus compañeros");
+
         List<CriterioEsquema> crit = criteriosActivos(p);
         GrupoAlumno objetivo = miembros.findByGrupoIdAndAlumnoId(p.getGrupo().getId(), r.evaluadoId())
                 .orElseThrow(() -> Http.invalido("El evaluado no pertenece a tu grupo"));
@@ -112,14 +115,15 @@ public class AutoevaluacionService {
         List<AutoevaluacionDto.Objetivo> objetivos = new ArrayList<>();
         for (GrupoAlumno m : miembros.findByGrupoId(p.getGrupo().getId())) {
             Usuario a = m.getAlumno();
+            if (a.getId().equals(u.getId())) continue;
             objetivos.add(new AutoevaluacionDto.Objetivo(a.getId(), a.getNombre() + " " + a.getApellido(),
-                    a.getId().equals(u.getId()), mias.containsKey(a.getId()),
+                    false, mias.containsKey(a.getId()),
                     mias.getOrDefault(a.getId(), List.of())));
         }
         objetivos.sort(Comparator.comparing(AutoevaluacionDto.Objetivo::propio).reversed()
                 .thenComparing(AutoevaluacionDto.Objetivo::nombre));
 
-        boolean completo = !objetivos.isEmpty() && objetivos.stream().allMatch(AutoevaluacionDto.Objetivo::evaluado);
+        boolean completo = objetivos.stream().allMatch(AutoevaluacionDto.Objetivo::evaluado);
         List<EsquemaDto.Criterio> criterios = crit.stream()
                 .map(c -> new EsquemaDto.Criterio(c.getId(), c.getNombre(), c.getDescripcion(), c.getPonderacion()))
                 .toList();

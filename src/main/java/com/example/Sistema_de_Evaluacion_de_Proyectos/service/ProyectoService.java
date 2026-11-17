@@ -111,7 +111,7 @@ public class ProyectoService {
         // Se mantiene la forma del DTO: seccionId = sección (SOFT41) y materiaId = materia de la asignación
         return new ProyectoDto.Response(p.getId(), p.getTitulo(), p.getDescripcion(),
                 g.getId(), g.getNombre(), a.getSubseccion().getSeccion().getId(), a.getMateria().getId(),
-                e == null ? null : e.getId(), e == null ? null : e.getNombre(),
+                a.getMateria().getNombre(), e == null ? null : e.getId(), e == null ? null : e.getNombre(),
                 p.getEstado(), p.getResultadosPublicados());
     }
 }

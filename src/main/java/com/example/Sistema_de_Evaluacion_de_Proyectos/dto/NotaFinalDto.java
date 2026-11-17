@@ -14,5 +14,5 @@ public class NotaFinalDto {
                                 BigDecimal pesoPublico, int evaluacionesPublicas, boolean publicoAbierto,
                                 boolean definitiva, List<NotaAlumno> alumnos) {}
 
-    public record MiNota(Long proyectoId, String titulo, boolean publicado, NotaAlumno nota) {}
+    public record MiNota(Long proyectoId, String titulo, String materia, boolean publicado, NotaAlumno nota) {}
 }
