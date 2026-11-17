@@ -32,4 +32,8 @@ public class CriterioEsquema {
 
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal ponderacion;
+
+    /** Las versiones inactivas se conservan para las respuestas ya registradas. */
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private boolean activo = true;
 }

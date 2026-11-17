@@ -8,4 +8,5 @@ import java.util.List;
 public interface CriterioEsquemaRepository extends JpaRepository<CriterioEsquema, Long> {
     List<CriterioEsquema> findByEsquemaId(Long esquemaId);
     List<CriterioEsquema> findByEsquemaIdAndModalidad(Long esquemaId, CriterioEsquema.Modalidad modalidad);
+    List<CriterioEsquema> findByEsquemaIdAndModalidadAndActivoTrue(Long esquemaId, CriterioEsquema.Modalidad modalidad);
 }

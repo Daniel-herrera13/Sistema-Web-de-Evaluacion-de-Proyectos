@@ -74,7 +74,7 @@ public class NotaFinalService {
     public NotaFinalDto.NotasProyecto notasProyecto(Long proyectoId) {
         Proyecto p = proyectos.findById(proyectoId)
                 .orElseThrow(() -> Http.noEncontrado("Proyecto no encontrado"));
-        EsquemaEvaluacion esq = esquema.deMateria(p.getGrupo().getAsignacion().getMateria().getId());
+        EsquemaEvaluacion esq = esquema.deProyecto(p);
         boolean usaDoc = esq.getPesoDocenteJurado().signum() > 0;
         boolean usaAuto = esq.getPesoAutoevaluacion().signum() > 0;
         boolean usaPub = esq.getPesoPublico().signum() > 0;

@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PublicoService {
-    private static final String ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // sin 0/O ni 1/I
+    private static final String ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private final SecureRandom azar = new SecureRandom();
 
     private final ProyectoRepository proyectos;
@@ -35,28 +35,49 @@ public class PublicoService {
     private final EsquemaService esquema;
     private final AccesoService acceso;
 
+    @Transactional(readOnly = true)
+    public List<EsquemaDto.ProyectoPublico> proyectosGestionables(String correo) {
+        var actor = acceso.actor(correo);
+        return proyectos.findAll().stream()
+                .filter(p -> acceso.puedeGestionarPublica(actor, p))
+                .map(p -> new EsquemaDto.ProyectoPublico(p.getId(), p.getTitulo(), p.getGrupo().getNombre()))
+                .toList();
+    }
+
     // ---------- gestión (admin o docente de la materia) ----------
     @Transactional
     public EsquemaDto.PublicoEstado abrir(Long proyectoId, String correo) {
         Proyecto p = proyecto(proyectoId);
-        acceso.exigirGestion(acceso.actor(correo), p);
-        Long materiaId = materiaDe(p);
-        if (esquema.deMateria(materiaId).getPesoPublico().signum() <= 0)
+        acceso.exigirGestionPublica(acceso.actor(correo), p);
+        if (p.getCodigoValidacionPublica() == null || p.getCodigoValidacionPublica().isBlank())
+            throw Http.conflicto("Define y guarda un codigo de validacion antes de abrir la evaluacion");
+        if (esquema.deProyecto(p).getPesoPublico().signum() <= 0)
             throw Http.conflicto("El esquema de la materia no usa evaluación pública");
-        if (esquema.criterios(materiaId, Modalidad.PUBLICO).isEmpty())
+        if (criterios(p).isEmpty())
             throw Http.conflicto("El docente aún no definió los criterios de la evaluación pública");
         if (Boolean.TRUE.equals(p.getResultadosPublicados()))
             throw Http.conflicto("Los resultados ya fueron publicados");
 
-        if (p.getCodigoPublico() == null) p.setCodigoPublico(generarCodigo());
+        if (p.getCodigoPublico() == null) p.setCodigoPublico(generarCodigoProyecto());
         p.setPublicoAbierto(true);
+        return estado(proyectos.save(p));
+    }
+
+    @Transactional
+    public EsquemaDto.PublicoEstado cambiarCodigoValidacion(Long proyectoId, String codigo, String correo) {
+        Proyecto p = proyecto(proyectoId);
+        acceso.exigirGestionPublica(acceso.actor(correo), p);
+        String normalizado = codigo == null ? "" : codigo.trim().toUpperCase();
+        if (!normalizado.matches("[A-Z0-9-]{4,20}"))
+            throw Http.invalido("El código debe tener entre 4 y 20 caracteres: letras, números o guiones");
+        p.setCodigoValidacionPublica(normalizado);
         return estado(proyectos.save(p));
     }
 
     @Transactional
     public EsquemaDto.PublicoEstado cerrar(Long proyectoId, String correo) {
         Proyecto p = proyecto(proyectoId);
-        acceso.exigirGestion(acceso.actor(correo), p);
+        acceso.exigirGestionPublica(acceso.actor(correo), p);
         p.setPublicoAbierto(false);
         return estado(proyectos.save(p));
     }
@@ -64,14 +85,15 @@ public class PublicoService {
     @Transactional(readOnly = true)
     public EsquemaDto.PublicoEstado estado(Long proyectoId, String correo) {
         Proyecto p = proyecto(proyectoId);
-        acceso.exigirGestion(acceso.actor(correo), p);
+        acceso.exigirGestionPublica(acceso.actor(correo), p);
         return estado(p);
     }
 
     // ---------- público anónimo ----------
     @Transactional(readOnly = true)
-    public PublicoDto.Formulario formulario(String codigo) {
+    public PublicoDto.Formulario formulario(String codigo, String codigoValidacion) {
         Proyecto p = abierto(codigo);
+        exigirCodigoValidacion(p, codigoValidacion);
         return new PublicoDto.Formulario(p.getTitulo(), p.getGrupo().getNombre(),
                 p.getEmpresa() == null ? null : p.getEmpresa().getNombre(),
                 criterios(p).stream()
@@ -83,6 +105,7 @@ public class PublicoService {
     @Transactional
     public void evaluar(String codigo, PublicoDto.Evaluar r) {
         Proyecto p = abierto(codigo);
+        exigirCodigoValidacion(p, r.codigoValidacion());
         List<CriterioEsquema> crit = criterios(p);
         Map<Long, CriterioEsquema> porId = crit.stream()
                 .collect(Collectors.toMap(CriterioEsquema::getId, c -> c));
@@ -119,14 +142,17 @@ public class PublicoService {
         return p;
     }
 
-    private List<CriterioEsquema> criterios(Proyecto p) {
-        List<CriterioEsquema> crit = esquema.criterios(materiaDe(p), Modalidad.PUBLICO);
-        if (crit.isEmpty()) throw Http.conflicto("La evaluación pública no tiene criterios definidos");
-        return crit;
+    private void exigirCodigoValidacion(Proyecto p, String codigo) {
+        String recibido = codigo == null ? "" : codigo.trim();
+        String esperado = p.getCodigoValidacionPublica();
+        if (esperado == null || !esperado.equalsIgnoreCase(recibido))
+            throw Http.prohibido("El codigo de validacion no es correcto");
     }
 
-    private Long materiaDe(Proyecto p) {
-        return p.getGrupo().getAsignacion().getMateria().getId();
+    private List<CriterioEsquema> criterios(Proyecto p) {
+        List<CriterioEsquema> crit = esquema.criterios(p, Modalidad.PUBLICO);
+        if (crit.isEmpty()) throw Http.conflicto("La evaluación pública no tiene criterios definidos");
+        return crit;
     }
 
     private Proyecto proyecto(Long id) {
@@ -134,11 +160,11 @@ public class PublicoService {
     }
 
     private EsquemaDto.PublicoEstado estado(Proyecto p) {
-        return new EsquemaDto.PublicoEstado(p.getCodigoPublico(),
+        return new EsquemaDto.PublicoEstado(p.getCodigoPublico(), p.getCodigoValidacionPublica(),
                 Boolean.TRUE.equals(p.getPublicoAbierto()), evaluaciones.countByProyectoId(p.getId()));
     }
 
-    private String generarCodigo() {
+    private String generarCodigoProyecto() {
         String codigo;
         do {
             StringBuilder sb = new StringBuilder();
@@ -147,4 +173,5 @@ public class PublicoService {
         } while (proyectos.existsByCodigoPublico(codigo));
         return codigo;
     }
+
 }

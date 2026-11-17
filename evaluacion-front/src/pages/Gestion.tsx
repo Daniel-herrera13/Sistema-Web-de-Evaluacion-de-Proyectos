@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { BookOpen, Building2, ClipboardCheck, Edit3, FileText, GraduationCap, Layers, Plus, Save, Trash2, Users, X } from 'lucide-react'
+import { BookOpen, Building2, ClipboardCheck, Copy, Edit3, FileText, GraduationCap, Layers, Plus, Save, Trash2, Users, X } from 'lucide-react'
 import api from '../api/axios'
 import Shell from '../components/Shell'
 import AlumnosDisponibles from '../components/AlumnosDisponibles'
@@ -19,6 +19,8 @@ interface Campo {
     step?: string
     required?: boolean
     disabled?: boolean
+    pattern?: string
+    placeholder?: string
     options?: [string, string][]
 }
 
@@ -29,7 +31,7 @@ const modules: Record<Module, { title: string; description: string; icon: Icono;
     grupos: { title: 'Alumnos y grupos', description: 'Crea grupos y asigna integrantes disponibles.', icon: GraduationCap, roles: ['ADMIN', 'DOCENTE'] },
     empresas: { title: 'Empresas', description: 'Registra las empresas vinculadas a los proyectos.', icon: Building2, roles: ['ADMIN', 'DOCENTE'] },
     proyectos: { title: 'Proyectos', description: 'Registra proyectos y consulta su información.', icon: FileText, roles: ['ADMIN', 'DOCENTE'] },
-    criterios: { title: 'Criterios de evaluación', description: 'Define ponderaciones por materia, sección, grupo o proyecto.', icon: ClipboardCheck, roles: ['ADMIN', 'DOCENTE'] },
+    criterios: { title: 'Criterios de evaluación', description: 'Define ponderaciones por materia, sección, grupo o proyecto, y por ciclo.', icon: ClipboardCheck, roles: ['ADMIN', 'DOCENTE'] },
 }
 
 const emptyForms: Record<Module, Row> = {
@@ -39,12 +41,15 @@ const emptyForms: Record<Module, Row> = {
     grupos: { nombre: '', asignacionId: '' },
     empresas: { nombre: '', contacto: '', correo: '', telefono: '' },
     proyectos: { titulo: '', descripcion: '', grupoId: '', empresaId: '', estado: 'ACTIVO' },
-    criterios: { nombre: '', descripcion: '', ponderacion: '', nivel: '', nivelId: '' },
+    criterios: { nombre: '', descripcion: '', ponderacion: '', nivel: '', nivelId: '', ciclo: '' },
 }
 
 const etiquetaNivel: Record<string, string> = { MATERIA: 'Materia', ASIGNACION: 'Materia en subsección', GRUPO: 'Grupo', PROYECTO: 'Proyecto' }
 const claveNivel: Record<string, string> = { MATERIA: 'materiaId', ASIGNACION: 'asignacionId', GRUPO: 'grupoId', PROYECTO: 'proyectoId' }
 const idsNumericos = ['docentePrincipalId', 'asignacionId', 'seccionId', 'grupoId', 'empresaId', 'materiaId', 'proyectoId', 'rolId', 'ponderacion']
+
+// Un conjunto de criterios = mismo nivel + mismo ciclo (ciclo vacío = conjunto general)
+const claveConjunto = (r: Row) => `${r.nivel}:${r.nivelId}:${r.ciclo ?? ''}`
 
 const asigVacia = { subseccionId: '', materiaId: '', docenteId: '' }
 
@@ -69,6 +74,7 @@ export default function Gestion() {
 }
 
 function Modulo({ active }: { active: Module }) {
+    const { usuario } = useAuth()
     const meta = modules[active]
     const Icon = meta.icon
     const [rows, setRows] = useState<Row[]>([])
@@ -80,6 +86,8 @@ function Modulo({ active }: { active: Module }) {
     const [grupoSel, setGrupoSel] = useState<Row | null>(null)
     const [members, setMembers] = useState<Row[]>([])
     const [detail, setDetail] = useState<Row | null>(null)
+    // criterios: conjuntos (nivel + ciclo) que ya se usaron en evaluaciones y no se pueden cambiar
+    const [usos, setUsos] = useState<Record<string, boolean>>({})
 
     // subsecciones y asignaciones de una sección
     const [seccionSel, setSeccionSel] = useState<Row | null>(null)
@@ -90,10 +98,29 @@ function Modulo({ active }: { active: Module }) {
     const [listaDocentes, setListaDocentes] = useState<Row[]>([])
     const [asig, setAsig] = useState(asigVacia)
 
+    // consulta, por cada nivel con criterios, qué conjuntos (ciclos) ya se usaron
+    const cargarUsos = async (filas: Row[]) => {
+        const niveles = new Map<string, Row>()
+        for (const r of filas) niveles.set(`${r.nivel}:${r.nivelId}`, r)
+        const resultados = await Promise.allSettled(
+            [...niveles.values()].map((r) =>
+                api.get('/criterios/conjuntos', { params: { [claveNivel[r.nivel]]: r.nivelId } })
+                    .then((res) => ({ r, conjuntos: listData(res.data) }))),
+        )
+        const mapa: Record<string, boolean> = {}
+        for (const x of resultados) {
+            if (x.status !== 'fulfilled') continue
+            for (const c of x.value.conjuntos) mapa[`${x.value.r.nivel}:${x.value.r.nivelId}:${c.ciclo ?? ''}`] = Boolean(c.enUso)
+        }
+        setUsos(mapa)
+    }
+
     const load = async () => {
         setError('')
-        try { setRows(await get(`/${active}`)) }
+        let filas: Row[]
+        try { filas = await get(`/${active}`); setRows(filas) }
         catch (e) { setError(mensajeError(e, 'No fue posible cargar la información.')); return }
+        if (active === 'criterios') void cargarUsos(filas)
 
         const pedidos: Record<string, () => Promise<Row[]>> = {}
         if (active === 'usuarios') pedidos.roles = () => get('/roles')
@@ -175,6 +202,7 @@ function Modulo({ active }: { active: Module }) {
             { key: 'ponderacion', label: 'Ponderación (%)', type: 'number', step: '0.01', required: true },
             { key: 'nivel', label: 'Se aplica a', required: true, disabled: editing !== null, options: Object.entries(etiquetaNivel) },
             { key: 'nivelId', label: 'Cuál', required: true, disabled: editing !== null || !form.nivel, options: nivelOpciones[String(form.nivel)] ?? [] },
+            { key: 'ciclo', label: 'Ciclo (opcional; vacío = conjunto general)', disabled: editing !== null, pattern: '\\d{2}-\\d{4}', placeholder: 'Ej. 02-2026' },
         ],
     }
     const campos = camposPor[active]
@@ -217,7 +245,7 @@ function Modulo({ active }: { active: Module }) {
             base.password = ''
         }
         if (active === 'grupos') base.asignacionId = String(row.asignacionId ?? '')
-        if (active === 'criterios') { base.nivel = row.nivel ?? ''; base.nivelId = String(row.nivelId ?? '') }
+        if (active === 'criterios') { base.nivel = row.nivel ?? ''; base.nivelId = String(row.nivelId ?? ''); base.ciclo = row.ciclo ?? '' }
         setEditing(row.id); setForm(base)
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
@@ -227,6 +255,22 @@ function Modulo({ active }: { active: Module }) {
         setError(''); setNotice('')
         try { await api.delete(`/${active}/${id}`); setNotice('Registro eliminado.'); await load() }
         catch (e) { setError(mensajeError(e, 'No se pudo eliminar el registro.')) }
+    }
+
+    // ---------- criterios: copiar un conjunto a otro ciclo ----------
+    const duplicarConjunto = async (t: { nivel: string; nivelId: number; ciclo: string }) => {
+        const destino = window.prompt('Ciclo de destino (formato NN-AAAA, por ejemplo 01-2027):')?.trim()
+        if (!destino) return
+        setError(''); setNotice('')
+        try {
+            await api.post('/criterios/duplicar', {
+                [claveNivel[t.nivel]]: t.nivelId,
+                cicloOrigen: t.ciclo || null,
+                cicloDestino: destino,
+            })
+            setNotice(`Conjunto duplicado al ciclo ${destino}. Ya puedes editarlo ahí.`)
+            await load()
+        } catch (e) { setError(mensajeError(e, 'No se pudo duplicar el conjunto.')) }
     }
 
     // ---------- integrantes de un grupo ----------
@@ -364,16 +408,21 @@ function Modulo({ active }: { active: Module }) {
         criterios: [
             { th: 'Criterio', td: (r) => <>{r.nombre}<small>{r.descripcion}</small></> },
             { th: 'Se aplica a', td: (r) => nombreNivel(r) },
+            { th: 'Ciclo', td: (r) => r.ciclo || 'General' },
             { th: 'Ponderación', td: (r) => `${r.ponderacion}%` },
         ],
     }
 
+    // un total por conjunto (nivel + ciclo)
     const totales = (() => {
         if (active !== 'criterios') return []
-        const mapa = new Map<string, { label: string; suma: number }>()
+        const mapa = new Map<string, { label: string; suma: number; nivel: string; nivelId: number; ciclo: string }>()
         for (const r of rows) {
-            const key = `${r.nivel}:${r.nivelId}`
-            const actual = mapa.get(key) ?? { label: nombreNivel(r), suma: 0 }
+            const key = claveConjunto(r)
+            const actual = mapa.get(key) ?? {
+                label: `${nombreNivel(r)} · ${r.ciclo ? `ciclo ${r.ciclo}` : 'general'}`,
+                suma: 0, nivel: r.nivel, nivelId: r.nivelId, ciclo: r.ciclo ?? '',
+            }
             actual.suma = Math.round((actual.suma + Number(r.ponderacion ?? 0)) * 100) / 100
             mapa.set(key, actual)
         }
@@ -401,11 +450,27 @@ function Modulo({ active }: { active: Module }) {
                                         {c.options.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
                                     </select>
                                 ) : (
-                                    <input required={c.required} type={c.type ?? 'text'} step={c.step} value={form[c.key] ?? ''} onChange={(e) => setField(c.key, e.target.value)} />
+                                    <input
+                                        required={c.required}
+                                        disabled={c.disabled}
+                                        type={c.type ?? 'text'}
+                                        step={c.step}
+                                        pattern={c.pattern}
+                                        placeholder={c.placeholder}
+                                        title={c.pattern ? 'Formato NN-AAAA, por ejemplo 02-2026' : undefined}
+                                        value={form[c.key] ?? ''}
+                                        onChange={(e) => setField(c.key, e.target.value)}
+                                    />
                                 )}
                             </label>
                         ))}
-                        {active === 'criterios' && <p className="nota-info">Se usa el nivel más específico cuya suma sea 100 %: proyecto → grupo → materia en subsección → materia.</p>}
+                        {active === 'criterios' && (
+                            <p className="nota-info">
+                                Se usa el nivel más específico cuya suma sea 100 %: proyecto → grupo → materia en subsección → materia.
+                                En cada nivel se prefiere el conjunto del ciclo del proyecto y, si no existe, el general.
+                                Un conjunto que ya se usó en evaluaciones no se puede cambiar: duplícalo a otro ciclo.
+                            </p>
+                        )}
                         {active === 'grupos' && (lookups.asignaciones ?? []).length === 0 && (
                             <p className="nota-info">No hay asignaciones disponibles. Créalas en Secciones, con el icono de capas.</p>
                         )}
@@ -425,6 +490,12 @@ function Modulo({ active }: { active: Module }) {
                                 <div key={t.key} className={`criteria-total ${t.suma > 100 ? 'over' : t.suma === 100 ? '' : 'pend'}`}>
                                     {t.label}: <strong>{t.suma.toFixed(2)}%</strong>{' '}
                                     {t.suma === 100 ? '— completo' : t.suma > 100 ? '— excede el 100%' : `— faltan ${(100 - t.suma).toFixed(2)}%`}
+                                    {usos[t.key] && <span className="tag tag-warn" style={{ marginLeft: 8 }}>En uso</span>}
+                                    {t.suma === 100 && (
+                                        <button type="button" className="preset-btn" style={{ marginLeft: 8 }} title="Copiar este conjunto a otro ciclo" onClick={() => void duplicarConjunto(t)}>
+                                            <Copy size={13} /> Duplicar a otro ciclo
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -434,19 +505,23 @@ function Modulo({ active }: { active: Module }) {
                         <table>
                             <thead><tr>{columnas[active].map((c) => <th key={c.th}>{c.th}</th>)}<th>Acciones</th></tr></thead>
                             <tbody>
-                            {rows.map((row) => (
-                                <tr key={row.id}>
-                                    {columnas[active].map((c) => <td key={c.th}>{c.td(row)}</td>)}
-                                    <td>
-                                        <div className="row-actions">
-                                            <button onClick={() => edit(row)} title="Editar"><Edit3 size={15} /></button>
-                                            <button onClick={() => void remove(row.id)} title="Eliminar"><Trash2 size={15} /></button>
-                                            {active === 'grupos' && <button onClick={() => abrirGrupo(row)} title="Integrantes"><Users size={15} /></button>}
-                                            {active === 'secciones' && <button onClick={() => void abrirSeccion(row)} title="Subsecciones y materias"><Layers size={15} /></button>}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                            {rows.map((row) => {
+                                const bloqueado = active === 'criterios' && Boolean(usos[claveConjunto(row)]) && usuario?.rol !== 'ADMIN'
+                                const aviso = 'Este conjunto ya se usó en evaluaciones: duplícalo a otro ciclo para cambiarlo'
+                                return (
+                                    <tr key={row.id}>
+                                        {columnas[active].map((c) => <td key={c.th}>{c.td(row)}</td>)}
+                                        <td>
+                                            <div className="row-actions">
+                                                <button onClick={() => edit(row)} title={bloqueado ? aviso : 'Editar'} disabled={bloqueado}><Edit3 size={15} /></button>
+                                                <button onClick={() => void remove(row.id)} title={bloqueado ? aviso : 'Eliminar'} disabled={bloqueado}><Trash2 size={15} /></button>
+                                                {active === 'grupos' && <button onClick={() => abrirGrupo(row)} title="Integrantes"><Users size={15} /></button>}
+                                                {active === 'secciones' && <button onClick={() => void abrirSeccion(row)} title="Subsecciones y materias"><Layers size={15} /></button>}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
                             </tbody>
                         </table>
                         {rows.length === 0 && <div className="empty-state"><Icon size={28} /><strong>No hay registros todavía</strong><p>Agrega el primero usando el formulario.</p></div>}

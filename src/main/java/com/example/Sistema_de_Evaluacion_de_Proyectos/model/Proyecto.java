@@ -39,6 +39,9 @@ public class Proyecto {
     @Column(name = "codigo_publico", unique = true, length = 20)
     private String codigoPublico;
 
+    @Column(name = "codigo_validacion_publica", length = 20)
+    private String codigoValidacionPublica;
+
     @Column(name = "publico_abierto")
     private Boolean publicoAbierto = false;
 }

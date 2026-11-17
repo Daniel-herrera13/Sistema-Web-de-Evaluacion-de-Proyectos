@@ -40,6 +40,12 @@ public class AccesoService {
         return invitados.existsByProyectoIdAndEvaluadorId(p.getId(), u.getId());
     }
 
+    public boolean esDocenteResponsable(Usuario u, Proyecto p) {
+        if (esDocentePrincipal(u, p)) return true;
+        Usuario principalMateria = p.getGrupo().getAsignacion().getMateria().getDocentePrincipal();
+        return principalMateria != null && principalMateria.getId().equals(u.getId());
+    }
+
     public boolean puedeVer(Usuario u, Proyecto p) {
         return switch (rol(u)) {
             case "admin" -> true;
@@ -70,5 +76,15 @@ public class AccesoService {
     public void exigirGestion(Usuario u, Proyecto p) {
         if (!puedeGestionar(u, p))
             throw Http.prohibido("Solo el administrador o el docente de la materia puede hacer esto");
+    }
+
+    public void exigirGestionPublica(Usuario u, Proyecto p) {
+        if (!puedeGestionarPublica(u, p))
+            throw Http.prohibido("Solo el administrador o el docente responsable de la materia puede gestionar el código público");
+    }
+
+    public boolean puedeGestionarPublica(Usuario u, Proyecto p) {
+        String r = rol(u);
+        return "admin".equals(r) || ("docente".equals(r) && esDocenteResponsable(u, p));
     }
 }

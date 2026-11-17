@@ -30,18 +30,20 @@ public class ProyectoController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProyectoDto.Response crear(@Valid @RequestBody ProyectoDto.Request r) {
-        return service.crear(r);
+    public ProyectoDto.Response crear(@Valid @RequestBody ProyectoDto.Request r, Authentication auth) {
+        return service.crear(r, auth.getName());
     }
 
     @PutMapping("/{id}")
-    public ProyectoDto.Response actualizar(@PathVariable Long id, @Valid @RequestBody ProyectoDto.Request r) {
-        return service.actualizar(id, r);
+    public ProyectoDto.Response actualizar(@PathVariable Long id,
+                                           @Valid @RequestBody ProyectoDto.Request r,
+                                           Authentication auth) {
+        return service.actualizar(id, r, auth.getName());
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) {
-        service.eliminar(id);
+    public void eliminar(@PathVariable Long id, Authentication auth) {
+        service.eliminar(id, auth.getName());
     }
 }

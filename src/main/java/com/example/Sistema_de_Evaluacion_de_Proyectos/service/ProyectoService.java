@@ -28,6 +28,7 @@ public class ProyectoService {
     private final EvaluadorInvitadoRepository invitados;
     private final CriterioRepository criterios;
     private final AccesoService acceso;
+    private final InvitacionService invitaciones;
 
     @Transactional(readOnly = true)
     public List<ProyectoDto.Response> listar(Long grupoId, Long empresaId, String correo) {
@@ -46,18 +47,31 @@ public class ProyectoService {
     }
 
     @Transactional
-    public ProyectoDto.Response crear(ProyectoDto.Request r) {
-        return aDto(proyectos.save(aplicar(new Proyecto(), r)));
+    public ProyectoDto.Response crear(ProyectoDto.Request r, String correo) {
+        Usuario u = acceso.actor(correo);
+        Proyecto p = aplicar(new Proyecto(), r);
+        acceso.exigirGestion(u, p);                  // el docente solo crea en sus grupos
+        p = proyectos.save(p);
+        invitarDocente(p);
+        return aDto(p);
     }
 
     @Transactional
-    public ProyectoDto.Response actualizar(Long id, ProyectoDto.Request r) {
-        return aDto(proyectos.save(aplicar(buscar(id), r)));
-    }
-
-    @Transactional
-    public void eliminar(Long id) {
+    public ProyectoDto.Response actualizar(Long id, ProyectoDto.Request r, String correo) {
+        Usuario u = acceso.actor(correo);
         Proyecto p = buscar(id);
+        acceso.exigirGestion(u, p);                  // sobre el proyecto actual
+        aplicar(p, r);
+        acceso.exigirGestion(u, p);                  // y sobre el grupo destino, si lo cambió
+        p = proyectos.save(p);
+        invitarDocente(p);
+        return aDto(p);
+    }
+
+    @Transactional
+    public void eliminar(Long id, String correo) {
+        Proyecto p = buscar(id);
+        acceso.exigirGestion(acceso.actor(correo), p);
         invitados.deleteAll(invitados.findByProyectoId(id));
         criterios.deleteAll(criterios.findByProyectoId(id));
         proyectos.delete(p);   // si ya tiene evaluaciones, la BD lo rechaza y responde 409
@@ -65,6 +79,12 @@ public class ProyectoService {
 
     private Proyecto buscar(Long id) {
         return proyectos.findById(id).orElseThrow(() -> Http.noEncontrado("Proyecto no encontrado"));
+    }
+
+    /** El docente de la asignación del grupo queda invitado como evaluador (idempotente). */
+    private void invitarDocente(Proyecto p) {
+        Usuario docente = p.getGrupo().getAsignacion().getDocente();
+        if (docente != null) invitaciones.asegurarDocente(p, docente);
     }
 
     private Proyecto aplicar(Proyecto p, ProyectoDto.Request r) {

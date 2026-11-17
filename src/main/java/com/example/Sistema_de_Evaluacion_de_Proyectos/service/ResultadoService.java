@@ -1,5 +1,6 @@
 package com.example.Sistema_de_Evaluacion_de_Proyectos.service;
 
+import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.NotaFinalDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ResultadoDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Http;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.model.GrupoAlumno;
@@ -10,7 +11,7 @@ import com.example.Sistema_de_Evaluacion_de_Proyectos.repository.ProyectoReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.NotaFinalDto;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +31,7 @@ public class ResultadoService {
         List<ResultadoDto.MiResultado> salida = new ArrayList<>();
         for (GrupoAlumno m : miembros.findByAlumnoId(u.getId())) {
             for (Proyecto p : proyectos.findByGrupoId(m.getGrupo().getId())) {
-                salida.add(vista(p));
+                salida.add(vista(p, u));
             }
         }
         return salida;
@@ -44,27 +45,34 @@ public class ResultadoService {
         acceso.exigirGestion(u, p);
 
         ResultadoDto.Resumen r = calculo.resumen(proyectoId);
-        if (publicar && !r.definitiva())
-            throw Http.conflicto("Aún hay evaluadores sin enviar su evaluación (" + r.enviadas()
-                    + " de " + r.invitados() + ")");
+        // Se publica solo si TODAS las modalidades del esquema están completas
+        // (docentes/jurado, autoevaluación y evaluación pública cerrada), igual que en Notas finales.
+        if (publicar && !notasFinales.notasProyecto(proyectoId).definitiva())
+            throw Http.conflicto("Aún faltan notas por completar: evaluaciones de docentes y jurado ("
+                    + r.enviadas() + " de " + r.invitados() + "), autoevaluación de todos los alumnos "
+                    + "o cierre de la evaluación pública");
 
         p.setResultadosPublicados(publicar);
+        if (publicar) p.setPublicoAbierto(false);
         proyectos.save(p);
         return new ResultadoDto.Publicacion(proyectoId, publicar, r.notaFinal());
     }
 
-    private ResultadoDto.MiResultado vista(Proyecto p) {
+    private ResultadoDto.MiResultado vista(Proyecto p, Usuario alumno) {
         if (!Boolean.TRUE.equals(p.getResultadosPublicados())) {
             return new ResultadoDto.MiResultado(p.getId(), p.getTitulo(), p.getGrupo().getNombre(),
                     false, null, List.of(), List.of());
         }
         ResultadoDto.Resumen r = calculo.resumen(p.getId());
+        // La nota final es la misma que ve el docente en Notas finales (con todas las modalidades)
+        NotaFinalDto.NotaAlumno mia = notasFinales.notasProyecto(p.getId()).alumnos().stream()
+                .filter(a -> a.alumnoId().equals(alumno.getId())).findFirst().orElse(null);
         // Comentarios sin el nombre del evaluador, para que el resultado sea anónimo
         List<String> comentarios = r.evaluadores().stream()
                 .map(ResultadoDto.PorEvaluador::comentario)
                 .filter(c -> c != null && !c.isBlank())
                 .toList();
         return new ResultadoDto.MiResultado(p.getId(), p.getTitulo(), p.getGrupo().getNombre(),
-                true, r.notaFinal(), r.criterios(), comentarios);
+                true, mia == null ? null : mia.notaFinal(), r.criterios(), comentarios);
     }
 }

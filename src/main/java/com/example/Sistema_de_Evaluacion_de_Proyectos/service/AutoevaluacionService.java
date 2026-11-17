@@ -127,10 +127,9 @@ public class AutoevaluacionService {
     }
 
     private List<CriterioEsquema> criteriosActivos(Proyecto p) {
-        Long materiaId = p.getGrupo().getAsignacion().getMateria().getId();
-        if (esquema.deMateria(materiaId).getPesoAutoevaluacion().signum() <= 0)
+        if (esquema.deProyecto(p).getPesoAutoevaluacion().signum() <= 0)
             throw Http.conflicto("El docente no activó la autoevaluación para esta materia");
-        List<CriterioEsquema> crit = esquema.criterios(materiaId, Modalidad.AUTOEVALUACION);
+        List<CriterioEsquema> crit = esquema.criterios(p, Modalidad.AUTOEVALUACION);
         if (crit.isEmpty())
             throw Http.conflicto("El docente aún no definió los criterios de la autoevaluación");
         return crit;

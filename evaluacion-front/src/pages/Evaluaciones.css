@@ -7,6 +7,9 @@
 .evaluation-item strong, .evaluation-item small { display: block; }
 .evaluation-item small { margin-top: 4px; color: var(--gris); font-size: 10px; }
 .evaluation-detail h3 { margin: 24px 0 10px; font-size: 13px; }
+.evaluation-detail .panel-heading { flex-wrap: wrap; gap: 12px; }
+.evaluation-detail .export-actions { justify-content: flex-end; }
+.evaluation-detail .export-actions button { white-space: nowrap; }
 .evaluation-detail .available-row > span { flex: 1; }
 .evaluation-detail .available-row small { display: block; margin-top: 3px; color: var(--gris); font-size: 10px; }
 .note-field { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--borde); font-size: 13px; }

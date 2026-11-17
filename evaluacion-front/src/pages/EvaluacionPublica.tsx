@@ -13,17 +13,22 @@ export default function EvaluacionPublica() {
     const [proyectos, setProyectos] = useState<Row[]>([])
     const [sel, setSel] = useState<Row | null>(null)
     const [estado, setEstado] = useState<Row | null>(null)
+    const [codigoInput, setCodigoInput] = useState('')
     const [error, setError] = useState('')
     const [aviso, setAviso] = useState('')
     const [faltaEsquema, setFaltaEsquema] = useState(false)
 
     useEffect(() => {
-        api.get('/proyectos').then((r) => setProyectos(lista(r.data))).catch((e) => setError(mensajeError(e, 'No fue posible cargar los proyectos.')))
+        api.get('/esquemas/proyectos-publicos').then((r) => setProyectos(lista(r.data))).catch((e) => setError(mensajeError(e, 'No fue posible cargar los proyectos.')))
     }, [])
 
     const elegir = async (p: Row) => {
         setSel(p); setEstado(null); setError(''); setAviso(''); setFaltaEsquema(false)
-        try { setEstado((await api.get(`/esquemas/proyecto/${p.id}/publico`)).data) }
+        try {
+            const data = (await api.get(`/esquemas/proyecto/${p.id}/publico`)).data
+            setEstado(data)
+            setCodigoInput(data.codigoValidacion ?? '')
+        }
         catch (e) { setError(mensajeError(e, 'No fue posible consultar el estado.')) }
     }
 
@@ -34,9 +39,21 @@ export default function EvaluacionPublica() {
             setEstado((await api.post(`/esquemas/proyecto/${sel.id}/publico/${que}`)).data)
             setAviso(que === 'abrir' ? 'Evaluación pública abierta.' : 'Evaluación pública cerrada.')
         } catch (e) {
-            setError(mensajeError(e, 'No se pudo cambiar el estado.'))
-            if (que === 'abrir') setFaltaEsquema(true)
+            const mensaje = mensajeError(e, 'No se pudo cambiar el estado.')
+            setError(mensaje)
+            if (que === 'abrir' && estado?.codigo && /esquema|criterios/i.test(mensaje)) setFaltaEsquema(true)
         }
+    }
+
+    const guardarCodigo = async () => {
+        if (!sel) return
+        setError(''); setAviso(''); setFaltaEsquema(false)
+        try {
+            const { data } = await api.put(`/esquemas/proyecto/${sel.id}/publico/codigo-validacion`, { codigo: codigoInput })
+            setEstado(data)
+            setCodigoInput(data.codigoValidacion ?? '')
+            setAviso('Codigo de validacion guardado. El administrador y el docente responsable veran el mismo codigo.')
+        } catch (e) { setError(mensajeError(e, 'No se pudo guardar el codigo.')) }
     }
 
     const enlace = estado?.codigo ? `${window.location.origin}/publico/${estado.codigo}` : ''
@@ -78,14 +95,20 @@ export default function EvaluacionPublica() {
                                 <div><span className="panel-kicker">{sel.titulo}</span><h2>{estado.abierto ? 'Evaluación abierta' : 'Evaluación cerrada'}</h2></div>
                                 <span className={`tag ${estado.abierto ? 'tag-ok' : 'tag-warn'}`}>{estado.abierto ? 'Abierta' : 'Cerrada'}</span>
                             </div>
-                            {estado.codigo ? (
-                                <div className="code-box">
-                                    <span>CÓDIGO DEL PROYECTO</span>
-                                    <strong>{estado.codigo}</strong>
-                                    <code>{enlace}</code>
-                                    <button className="secondary-button" onClick={() => void copiar()}><Copy size={15} /> Copiar enlace</button>
+                            <div className="code-box">
+                                <span>CODIGO DEL PROYECTO (IDENTIFICADOR DEL ENLACE)</span>
+                                {estado.codigo && <><strong>{estado.codigo}</strong><code>{enlace}</code></>}
+                                <span>CODIGO DE VALIDACION (COMPARTIR POR SEPARADO)</span>
+                                {estado.codigoValidacion && <strong>{estado.codigoValidacion}</strong>}
+                                <label className="mod-field">
+                                    <span>Define o cambia el codigo de validacion (4-20 letras, numeros o guiones)</span>
+                                    <input className="mod-input" value={codigoInput} maxLength={20} placeholder="Ej. FERIA-2026" onChange={(e) => setCodigoInput(e.target.value)} />
+                                </label>
+                                <div className="export-actions">
+                                    <button className="secondary-button" onClick={() => void guardarCodigo()} disabled={codigoInput.trim().length < 4}>Guardar codigo</button>
+                                    {estado.codigo && <button className="secondary-button" onClick={() => void copiar()}><Copy size={15} /> Copiar enlace</button>}
                                 </div>
-                            ) : <p className="nota-info">Aún no se generó un código. Se crea al abrir la evaluación por primera vez.</p>}
+                            </div>
                             <p className="nota-info"><strong>{estado.evaluaciones}</strong> evaluaciones recibidas.</p>
                             <div className="form-actions">
                                 {estado.abierto

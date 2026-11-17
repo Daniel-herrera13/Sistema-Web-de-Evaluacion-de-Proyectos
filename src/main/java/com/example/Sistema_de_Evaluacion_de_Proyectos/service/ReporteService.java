@@ -1,5 +1,6 @@
 package com.example.Sistema_de_Evaluacion_de_Proyectos.service;
 
+import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.NotaFinalDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ReporteDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.dto.ResultadoDto;
 import com.example.Sistema_de_Evaluacion_de_Proyectos.exception.Http;
@@ -13,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -21,6 +24,7 @@ import java.util.List;
 public class ReporteService {
     private final ProyectoRepository proyectos;
     private final CalculoNotaService calculo;
+    private final NotaFinalService notasFinales;
     private final AccesoService acceso;
 
     /** Listado filtrado. Cada rol ve solo los proyectos a los que tiene acceso. */
@@ -50,38 +54,76 @@ public class ReporteService {
     @Transactional(readOnly = true)
     public ReporteDto.Tabla tablaListado(ReporteDto.Filtros f, String correo) {
         List<List<Object>> filas = new ArrayList<>();
+        boolean jurado = "jurado".equalsIgnoreCase(acceso.rol(acceso.actor(correo)));
         for (ReporteDto.Fila x : listar(f, correo)) {
-            filas.add(List.of(
-                    x.titulo(), x.grupo(), x.seccion(), x.ciclo(), x.materia(),
-                    x.empresa() == null ? "" : x.empresa(), x.estado(),
-                    x.invitados(), x.enviadas(),
-                    x.notaFinal() == null ? "" : x.notaFinal(),
-                    x.definitiva(), x.publicado()));
+            List<NotaFinalDto.NotaAlumno> alumnos = jurado
+                    ? List.of() : notasFinales.notasProyecto(x.proyectoId()).alumnos();
+            if (alumnos.isEmpty()) {
+                filas.add(filaListado(x, null));
+            } else {
+                for (NotaFinalDto.NotaAlumno alumno : alumnos) filas.add(filaListado(x, alumno));
+            }
         }
         return new ReporteDto.Tabla("Reporte de proyectos",
-                List.of("Proyecto", "Grupo", "Sección", "Ciclo", "Materia", "Empresa", "Estado",
-                        "Evaluadores", "Enviadas", "Nota final", "Definitiva", "Publicado"),
+                List.of("Proyecto", "Grupo", "Seccion", "Ciclo", "Materia", "Empresa", "Estado",
+                        "Evaluadores", "Enviadas", "Nota docentes/jurado", "Evaluacion completa", "Publicado",
+                        "Alumno", "Nota final alumno", "Estado nota alumno"),
                 filas);
+    }
+
+    private List<Object> filaListado(ReporteDto.Fila x, NotaFinalDto.NotaAlumno alumno) {
+        return Arrays.asList(
+                x.titulo(), x.grupo(), x.seccion(), x.ciclo(), x.materia(),
+                x.empresa() == null ? "" : x.empresa(), x.estado(),
+                x.invitados(), x.enviadas(),
+                x.notaFinal() == null ? "" : x.notaFinal(),
+                x.definitiva() ? "Si" : "No", x.publicado() ? "Si" : "No",
+                alumno == null ? "" : alumno.nombre(),
+                alumno == null || alumno.notaFinal() == null ? "" : alumno.notaFinal(),
+                alumno == null ? "" : alumno.definitiva() ? "Definitiva" : "Provisional");
     }
 
     @Transactional(readOnly = true)
     public ReporteDto.Tabla tablaDetalle(Long proyectoId, String correo) {
-        ResultadoDto.Resumen r = detalle(proyectoId, correo);
+        Usuario u = acceso.actor(correo);
+        boolean jurado = "jurado".equals(acceso.rol(u));
+        ResultadoDto.Resumen r = detalle(proyectoId, correo);   // valida el acceso
+
         List<List<Object>> filas = new ArrayList<>();
         for (ResultadoDto.PorEvaluador e : r.evaluadores()) {
-            filas.add(List.of("Evaluador: " + e.nombre(), e.rol(), e.estado(),
+            filas.add(Arrays.asList("Evaluador: " + e.nombre(), e.rol(), e.estado(),
                     e.nota() == null ? "" : e.nota()));
         }
         for (ResultadoDto.PorCriterio c : r.criterios()) {
-            filas.add(List.of("Criterio: " + c.nombre(), "Ponderación " + c.ponderacion() + "%", "",
+            filas.add(Arrays.asList("Criterio: " + c.nombre(), "Ponderación " + c.ponderacion() + "%", "",
                     c.promedio()));
         }
-        String nota = r.notaFinal() == null ? "sin nota aún" : r.notaFinal().toPlainString();
-        return new ReporteDto.Tabla("Proyecto: " + r.titulo() + " | Grupo " + r.grupo() + " | Nota final: " + nota,
-                List.of("Concepto", "Detalle", "Estado", "Nota"), filas);
+        // Alumnos del grupo con su nota final (la misma de Notas finales). El jurado no ve notas de alumnos.
+        if (!jurado) {
+            NotaFinalDto.NotasProyecto nf = notasFinales.notasProyecto(proyectoId);
+            for (NotaFinalDto.NotaAlumno a : nf.alumnos()) {
+                filas.add(Arrays.asList("Alumno: " + a.nombre(),
+                        "Docentes/jurado " + fmt(a.notaDocenteJurado())
+                                + " | Autoevaluación " + fmt(a.notaAutoevaluacion())
+                                + " | Público " + fmt(a.notaPublico()),
+                        a.definitiva() ? "Definitiva" : "Provisional",
+                        a.notaFinal() == null ? "" : a.notaFinal()));
+            }
+        }
+
+        String titulo = "Proyecto: " + r.titulo() + " | Grupo " + r.grupo();
+        if (!jurado) {
+            titulo += " | Nota docentes/jurado: "
+                    + (r.notaFinal() == null ? "sin nota aún" : r.notaFinal().toPlainString());
+        }
+        return new ReporteDto.Tabla(titulo, List.of("Concepto", "Detalle", "Estado", "Nota"), filas);
     }
 
     // ---------- auxiliares ----------
+    private String fmt(BigDecimal n) {
+        return n == null ? "-" : n.toPlainString();
+    }
+
     private boolean coincide(Proyecto p, ReporteDto.Filtros f) {
         Grupo g = p.getGrupo();
         Asignacion a = g.getAsignacion();

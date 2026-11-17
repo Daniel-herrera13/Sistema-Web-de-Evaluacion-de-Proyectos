@@ -22,6 +22,7 @@ export default function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/publico" element={<Publico />} />
                     <Route path="/publico/:codigo" element={<Publico />} />
 
                     <Route path="/dashboard" element={<RutaPrivada><Dashboard /></RutaPrivada>} />

@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.*;
 public class PublicoController {
     private final PublicoService service;
 
-    @GetMapping("/{codigo}")
-    public PublicoDto.Formulario formulario(@PathVariable String codigo) {
-        return service.formulario(codigo);
+    @PostMapping("/{codigo}/validar")
+    public PublicoDto.Formulario formulario(@PathVariable String codigo, @Valid @RequestBody PublicoDto.Validar r) {
+        return service.formulario(codigo, r.codigoValidacion());
     }
 
     @PostMapping("/{codigo}/evaluar")

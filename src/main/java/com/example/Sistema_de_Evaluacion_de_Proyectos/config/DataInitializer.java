@@ -25,12 +25,23 @@ import java.util.Map;
  *  2) Si app.seed.demo es true (por defecto), carga además el conjunto de datos de prueba
  *     para la defensa. Es idempotente: si ya existe fernando.castaneda25@itca.edu.sv, no repite nada.
  *     Para desactivar la demo: app.seed.demo=false en application.properties.
+ *
+ * Criterios y esquemas por ciclo:
+ *  - Los datos del ciclo vigente (02-2026) se guardan como conjunto GENERAL (ciclo null): se aplican a
+ *    cualquier ciclo que no tenga uno propio.
+ *  - Desarrollo Web trae además un conjunto y un esquema propios del ciclo siguiente (01-2027), todavía
+ *    sin evaluaciones, para probar la edición y la duplicación por ciclo.
  */
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
     private static final BigDecimal CIEN = new BigDecimal("100");
+
+    /** Ciclo de las secciones de prueba (formato NN-AAAA). */
+    private static final String CICLO = "02-2026";
+    /** Ciclo siguiente: solo tiene criterios y esquema, sin secciones ni evaluaciones. */
+    private static final String CICLO_SIGUIENTE = "01-2027";
 
     private final RolRepository roles;
     private final UsuarioRepository usuarios;
@@ -136,8 +147,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Modelado relacional, normalización, SQL e integridad de datos.", u.get("ana"));
 
         // Sección SOFT41 con subsecciones A y B. Cada alumno se matricula en UNA sola subsección.
-        // CORRECCIÓN: la entidad Seccion exige materia (materia_id NOT NULL), así que se le asigna una.
-        Seccion soft41 = seccion("SOFT41", "02-2026");;
+        Seccion soft41 = seccion("SOFT41", CICLO);
         Subseccion soft41a = subseccion("A", soft41);
         Subseccion soft41b = subseccion("B", soft41);
 
@@ -196,29 +206,40 @@ public class DataInitializer implements CommandLineRunner {
                 "Modelo relacional de libros, préstamos y usuarios, con consultas de reporte.",
                 alfaBd, null, "ACTIVO", null, false, false);
 
-        // ================= CRITERIOS DOCENTE / JURADO (suman 100 por nivel) =================
-        List<Criterio> critWeb = crearCriterios(web, null, new String[][]{
+        // ================= CRITERIOS DOCENTE / JURADO (suman 100 por conjunto) =================
+        // Conjuntos GENERALES (ciclo null): valen para cualquier ciclo que no tenga conjunto propio.
+        List<Criterio> critWeb = crearCriterios(web, null, null, new String[][]{
                 {"Funcionalidad", "30"}, {"Diseño de interfaz y usabilidad", "20"}, {"Calidad del código", "20"},
                 {"Documentación", "15"}, {"Presentación y defensa", "15"}});
-        List<Criterio> critBd = crearCriterios(bd, null, new String[][]{
+        List<Criterio> critBd = crearCriterios(bd, null, null, new String[][]{
                 {"Modelo entidad-relación", "30"}, {"Normalización", "20"}, {"Consultas SQL", "25"},
                 {"Integridad y seguridad", "15"}, {"Presentación", "10"}});
         // Nivel grupo: sobrescribe por completo los de la materia para el proyecto P6
-        List<Criterio> critGamma = crearCriterios(null, gamma, new String[][]{
+        List<Criterio> critGamma = crearCriterios(null, gamma, null, new String[][]{
                 {"Funcionalidad", "40"}, {"Diseño y usabilidad", "20"}, {"Calidad del código", "20"},
                 {"Presentación y defensa", "20"}});
+        // Ejemplo de conjunto PROPIO de un ciclo: Desarrollo Web, ciclo siguiente (sin evaluaciones: se puede editar)
+        crearCriterios(web, null, CICLO_SIGUIENTE, new String[][]{
+                {"Funcionalidad", "25"}, {"Diseño de interfaz y usabilidad", "20"}, {"Calidad del código", "20"},
+                {"Pruebas", "15"}, {"Documentación", "10"}, {"Presentación y defensa", "10"}});
 
         // ================= ESQUEMAS (modalidades) =================
-        EsquemaEvaluacion esqWeb = esquema(web, "70", "20", "10");
-        EsquemaEvaluacion esqBd = esquema(bd, "80", "20", "0");
+        // Esquemas GENERALES (ciclo null)
+        EsquemaEvaluacion esqWeb = esquema(web, null, "70", "20", "10");
+        EsquemaEvaluacion esqBd = esquema(bd, null, "80", "20", "0");
         String[][] criteriosAuto = {{"Responsabilidad", "25"}, {"Aporte técnico", "30"},
                 {"Trabajo en equipo", "25"}, {"Cumplimiento de plazos", "20"}};
+        String[][] criteriosPublico = {{"Utilidad", "40"}, {"Facilidad de uso", "35"}, {"Presentación visual", "25"}};
         List<CriterioEsquema> autoWeb = crearCriteriosEsquema(esqWeb, Modalidad.AUTOEVALUACION, criteriosAuto);
-        List<CriterioEsquema> pubWeb = crearCriteriosEsquema(esqWeb, Modalidad.PUBLICO, new String[][]{
-                {"Utilidad", "40"}, {"Facilidad de uso", "35"}, {"Presentación visual", "25"}});
+        List<CriterioEsquema> pubWeb = crearCriteriosEsquema(esqWeb, Modalidad.PUBLICO, criteriosPublico);
         List<CriterioEsquema> autoBd = crearCriteriosEsquema(esqBd, Modalidad.AUTOEVALUACION, criteriosAuto);
+        // Ejemplo de esquema PROPIO de un ciclo: Desarrollo Web, ciclo siguiente (60 / 25 / 15)
+        EsquemaEvaluacion esqWebSiguiente = esquema(web, CICLO_SIGUIENTE, "60", "25", "15");
+        crearCriteriosEsquema(esqWebSiguiente, Modalidad.AUTOEVALUACION, criteriosAuto);
+        crearCriteriosEsquema(esqWebSiguiente, Modalidad.PUBLICO, criteriosPublico);
 
         // ================= INVITACIONES =================
+        // El docente de la asignación siempre es evaluador de los proyectos de sus grupos.
         invitar(p1, u.get("mauricio"), u.get("carlos"));
         invitar(p1, u.get("silvia"), u.get("carlos"));
         invitar(p1, u.get("carlos"), u.get("ricardo"));
@@ -231,8 +252,10 @@ public class DataInitializer implements CommandLineRunner {
         invitar(p4, u.get("mauricio"), u.get("carlos"));
         invitar(p5, u.get("mauricio"), u.get("carlos"));
         invitar(p5, u.get("carlos"), u.get("ricardo"));
+        invitar(p6, u.get("carlos"), u.get("ricardo"));
         invitar(p6, u.get("silvia"), u.get("ricardo"));
         invitar(p6, u.get("jorge"), u.get("carlos"));
+        invitar(p7, u.get("ana"), u.get("ricardo"));
 
         // ================= EVALUACIONES DE DOCENTE / JURADO =================
         // Notas por criterio, en el mismo orden de los criterios de cada lista
@@ -249,7 +272,7 @@ public class DataInitializer implements CommandLineRunner {
         // P4: Carlos enviada (8.13) y Mauricio en BORRADOR (7.73, no cuenta)
         evaluar(p4, u.get("carlos"), critWeb, "ENVIADA", "Catálogo completo; revisar el carrito.", "8", "8", "7.5", "8.5", "9");
         evaluar(p4, u.get("mauricio"), critWeb, "BORRADOR", "Borrador: falta revisar el código.", "7.5", "8", "7", "8", "8.5");
-        // P6: Silvia enviada (8.70) con los criterios del grupo; Jorge sin evaluación
+        // P6: Silvia enviada (8.70) con los criterios del grupo; Carlos y Jorge sin evaluación
         evaluar(p6, u.get("silvia"), critGamma, "ENVIADA", "Cumple lo pedido con buen diseño.", "9", "8.5", "8", "9");
 
         // ================= AUTOEVALUACIONES (P1 y P2 completas) =================
@@ -302,7 +325,6 @@ public class DataInitializer implements CommandLineRunner {
         return materias.save(m);
     }
 
-    // CORRECCIÓN: ahora recibe la materia y se la asigna a la sección.
     private Seccion seccion(String nombre, String ciclo) {
         Seccion s = new Seccion();
         s.setNombre(nombre);
@@ -370,8 +392,11 @@ public class DataInitializer implements CommandLineRunner {
         return proyectos.save(p);
     }
 
-    /** Crea los criterios de un nivel (materia O grupo; el otro va null). Devuelve la lista en orden. */
-    private List<Criterio> crearCriterios(Materia materia, Grupo grupo, String[][] items) {
+    /**
+     * Crea el conjunto de criterios de un nivel (materia O grupo; el otro va null) para un ciclo
+     * (null = conjunto general). Devuelve la lista en orden.
+     */
+    private List<Criterio> crearCriterios(Materia materia, Grupo grupo, String ciclo, String[][] items) {
         List<Criterio> salida = new ArrayList<>();
         for (String[] it : items) {
             Criterio c = new Criterio();
@@ -379,14 +404,17 @@ public class DataInitializer implements CommandLineRunner {
             c.setPonderacion(new BigDecimal(it[1]));
             c.setMateria(materia);
             c.setGrupo(grupo);
+            c.setCiclo(ciclo);
             salida.add(criterios.save(c));
         }
         return salida;
     }
 
-    private EsquemaEvaluacion esquema(Materia materia, String docenteJurado, String auto, String publico) {
+    /** Esquema de una materia para un ciclo (null = esquema general). */
+    private EsquemaEvaluacion esquema(Materia materia, String ciclo, String docenteJurado, String auto, String publico) {
         EsquemaEvaluacion e = new EsquemaEvaluacion();
         e.setMateria(materia);
+        e.setCiclo(ciclo);
         e.setPesoDocenteJurado(new BigDecimal(docenteJurado));
         e.setPesoAutoevaluacion(new BigDecimal(auto));
         e.setPesoPublico(new BigDecimal(publico));
